@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Debug\\Game.obj",
+            "outputs": [
+                "Debug\\Game.cpp.obj.dt.module.json",
+                "Debug\\Game.cpp.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}

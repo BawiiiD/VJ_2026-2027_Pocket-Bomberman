@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Debug\\Texture.obj",
+            "outputs": [
+                "Debug\\Texture.cpp.obj.dt.module.json",
+                "Debug\\Texture.cpp.obj.dt.d.json"
+            ],
+            "requires": []
+        }
+    ]
+}
