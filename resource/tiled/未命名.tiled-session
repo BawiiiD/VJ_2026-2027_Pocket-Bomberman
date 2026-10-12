@@ -1,0 +1,98 @@
+{
+    "activeFile": "Mapa_1.tmx",
+    "expandedProjectPaths": [
+        ".",
+        "tiled"
+    ],
+    "file.lastUsedOpenFilter": "全部文件 (*)",
+    "fileStates": {
+        "Map_3.tmx": {
+            "scale": 1.68,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 255.95238095238093,
+                "y": 216.96428571428572
+            }
+        },
+        "Map_4.tmx": {
+            "scale": 1.68291015625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 256.1039865374572,
+                "y": 128.05199326872858
+            }
+        },
+        "Map_5.tmx": {
+            "scale": 3,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 130.33333333333334,
+                "y": 119.83333333333333
+            }
+        },
+        "Mapa.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Mapa1.tsx": {
+            "scaleInDock": 1.5,
+            "scaleInEditor": 1
+        },
+        "Mapa_1.tmx": {
+            "scale": 3,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 250,
+                "y": 156.16666666666666
+            }
+        },
+        "Mapa_2.tmx": {
+            "scale": 1.5,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 50.666666666666686,
+                "y": 256.3333333333333
+            }
+        },
+        "tiled/Mapa.tsx": {
+            "scaleInDock": 1
+        },
+        "tiled/Mapa_1.tmx": {
+            "scale": 1.7951041666666667,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 240.09748737886613,
+                "y": 159.87930134045146
+            }
+        }
+    },
+    "last.externalTilesetPath": "C:/Users/bawi1/Desktop/VJ/VJ_2026-2027_Pocket-Bomberman/resource/tiled",
+    "last.imagePath": "C:/Users/bawi1/Desktop/VJ/VJ_2026-2027_Pocket-Bomberman/resource/tiled",
+    "openFiles": [
+        "Mapa_1.tmx",
+        "Mapa_2.tmx",
+        "Map_3.tmx",
+        "Map_4.tmx",
+        "Mapa.tsx",
+        "Map_5.tmx"
+    ],
+    "project": "未命名.tiled-project",
+    "recentFiles": [
+        "Map_5.tmx",
+        "Mapa.tsx",
+        "Map_4.tmx",
+        "Map_3.tmx",
+        "Mapa_2.tmx",
+        "Mapa_1.tmx",
+        "Mapa1.tsx",
+        "tiled/Mapa_1.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.margin": 1,
+    "tileset.spacing": 1,
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}
