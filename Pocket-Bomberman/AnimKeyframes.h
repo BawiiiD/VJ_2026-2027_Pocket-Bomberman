@@ -6,10 +6,13 @@
 
 using namespace std;
 
+// A struct to hold the data for each animation
 struct AnimKeyframes
 {
+    // The time in milliseconds between each keyframe
     float millisecsPerKeyframe;
+    // The displacement of the sprite at each keyframe
     vector<glm::vec2> keyframeDispl;
 };
 
-#endif // _ANIMATION_KEYFRAMES
+#endif
