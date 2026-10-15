@@ -207,46 +207,22 @@ bool TileMap::collisionMoveDown(const glm::ivec2 &pos, const glm::ivec2 &size, i
 	return false;
 }
 
-bool TileMap::collisionMoveUp(
-    const glm::ivec2 &pos,
-    const glm::ivec2 &size) const
+bool TileMap::collisionMoveUp(const glm::ivec2 &pos, const glm::ivec2 &size) const
 {
-    const int leftTile =
-        static_cast<int>(
-            std::floor(float(pos.x) / tileSize)
-        );
+    int x0, x1, y;
 
-    const int rightTile =
-        static_cast<int>(
-            std::floor(
-                float(pos.x + size.x - 1) / tileSize
-            )
-        );
-
-    const int topTile =
-        static_cast<int>(
-            std::floor(float(pos.y) / tileSize)
-        );
-
-    if (leftTile < 0 || rightTile >= mapSize.x ||
-        topTile < 0 || topTile >= mapSize.y)
+    x0 = pos.x / tileSize;
+    x1 = (pos.x + size.x - 1) / tileSize;
+    y = pos.y / tileSize;
+    
+    for(int x = x0; x <= x1; x++)
     {
-        return true;
+        if(map[y * mapSize.x + x] != 0)
+        {
+            return true; 
+        }
     }
-
-    for (int tileX = leftTile;
-         tileX <= rightTile;
-         ++tileX)
-    {
-        const int tile =
-            map[topTile * mapSize.x + tileX];
-
-        // Haz que esta condición sea la misma que uses
-        // en collisionMoveLeft/Right/Down.
-        if (tile != 0)
-            return true;
-    }
-
+    
     return false;
 }
 
