@@ -52,5 +52,16 @@ bool Game::getKey(int key) const
 	return keys[key];
 }
 
+void Game::shutdown() 
+{ 
+	scene.shutdown(); 
+}
 
-
+Game::Game()
+    : bPlay(false)
+{
+    for (int i = 0; i <= GLFW_KEY_LAST; ++i)
+    {
+        keys[i] = false;
+    }
+}
