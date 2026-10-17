@@ -25,6 +25,7 @@ public:
 
 	bool loadFromFile(const string &filename, PixelFormat format);
 	void loadFromGlyphBuffer(unsigned char *buffer, int width, int height);
+	void loadFromRGBABuffer(const unsigned char *buffer, int width, int height);
 
 	void createEmptyTexture(int width, int height);
 	void loadSubtextureFromGlyphBuffer(unsigned char *buffer, int x, int y, int width, int height);

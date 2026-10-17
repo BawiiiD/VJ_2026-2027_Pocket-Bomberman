@@ -1,38 +1,112 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include <iostream>
+#include <algorithm>
 #include "Game.h"
 
+
+Game::Game()
+    : bPlay(false),
+      state(GameState::MENU)
+{
+	for(int i = 0; i <= GLFW_KEY_LAST; ++i)
+		keys[i] = false;
+}
 
 void Game::init()
 {
 	bPlay = true;
-	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-	scene.init();
+	glClearColor(0.f, 0.f, 0.f, 1.0f);
+	initShaders();
+
+	// All the characters, items and effects are in this image
+	if(!atlas.loadFromFile("images/sprites.png", TEXTURE_PIXEL_FORMAT_RGBA))
+		cout << "Could not load images/sprites.png" << endl;
+	atlas.setWrapS(GL_CLAMP_TO_EDGE);
+	atlas.setWrapT(GL_CLAMP_TO_EDGE);
+	atlas.setMinFilter(GL_NEAREST);
+	atlas.setMagFilter(GL_NEAREST);
+
+	text.init(texProgram, 8);
+	bigText.init(texProgram, 16);
+
+	menu.init(texProgram, atlas, text, bigText);
+	scene.init(texProgram, atlas, text, bigText);
+
+	state = GameState::MENU;
 }
 
 bool Game::update(int deltaTime)
 {
-	scene.update(deltaTime);
+	// Avoid huge steps (for example while the window is being dragged)
+	deltaTime = std::min(deltaTime, 50);
+
+	switch(state)
+	{
+	case GameState::MENU:
+		menu.update(deltaTime);
+		break;
+	case GameState::PLAYING:
+		scene.update(deltaTime);
+		if(scene.isFinished())
+		{
+			menu.reset();
+			state = GameState::MENU;
+		}
+		break;
+	}
 
 	return bPlay;
 }
 
 void Game::render()
 {
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	scene.render();
+
+	if(state == GameState::MENU)
+		menu.render();
+	else
+		scene.render();
 }
 
 void Game::keyPressed(int key)
 {
-	if(key == GLFW_KEY_ESCAPE) // Escape code
-		bPlay = false;
+	if(key < 0 || key > GLFW_KEY_LAST)
+		return;
 	keys[key] = true;
+
+	if(state == GameState::MENU)
+	{
+		switch(menu.keyPressed(key))
+		{
+		case Menu::Action::PLAY:
+			scene.startGame();
+			if(!scene.isFinished())
+				state = GameState::PLAYING;
+			break;
+		case Menu::Action::QUIT:
+			bPlay = false;
+			break;
+		default:
+			break;
+		}
+	}
+	else
+	{
+		// Escape goes back to the main menu
+		if(key == GLFW_KEY_ESCAPE)
+		{
+			menu.reset();
+			state = GameState::MENU;
+		}
+		else
+			scene.keyPressed(key);
+	}
 }
 
 void Game::keyReleased(int key)
 {
-	keys[key] = false;
+	if(key >= 0 && key <= GLFW_KEY_LAST)
+		keys[key] = false;
 }
 
 void Game::mouseMove(int x, int y)
@@ -52,16 +126,56 @@ bool Game::getKey(int key) const
 	return keys[key];
 }
 
-void Game::shutdown() 
-{ 
-	scene.shutdown(); 
+void Game::fillRect(const glm::vec4 &rect, const glm::vec3 &color) const
+{
+	// Scissor coordinates are in window pixels, with the origin at the bottom-left corner
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(int(rect.x * PIXEL_SCALE),
+	          int((VIEW_HEIGHT - rect.y - rect.w) * PIXEL_SCALE),
+	          int(rect.z * PIXEL_SCALE),
+	          int(rect.w * PIXEL_SCALE));
+	glClearColor(color.r, color.g, color.b, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glDisable(GL_SCISSOR_TEST);
 }
 
-Game::Game()
-    : bPlay(false)
+void Game::shutdown()
 {
-    for (int i = 0; i <= GLFW_KEY_LAST; ++i)
-    {
-        keys[i] = false;
-    }
+	// OpenGL objects have to be released while the context still exists
+	scene.shutdown();
+	menu.shutdown();
+	text.free();
+	bigText.free();
+	texProgram.free();
+}
+
+void Game::initShaders()
+{
+	Shader vShader, fShader;
+
+	vShader.initFromFile(VERTEX_SHADER, "shaders/texture.vert");
+	if(!vShader.isCompiled())
+	{
+		cout << "Vertex Shader Error" << endl;
+		cout << "" << vShader.log() << endl << endl;
+	}
+	fShader.initFromFile(FRAGMENT_SHADER, "shaders/texture.frag");
+	if(!fShader.isCompiled())
+	{
+		cout << "Fragment Shader Error" << endl;
+		cout << "" << fShader.log() << endl << endl;
+	}
+	texProgram.init();
+	texProgram.addShader(vShader);
+	texProgram.addShader(fShader);
+	texProgram.link();
+	if(!texProgram.isLinked())
+	{
+		cout << "Shader Linking Error" << endl;
+		cout << "" << texProgram.log() << endl << endl;
+	}
+	texProgram.bindFragmentOutput("outColor");
+	vShader.free();
+	fShader.free();
 }

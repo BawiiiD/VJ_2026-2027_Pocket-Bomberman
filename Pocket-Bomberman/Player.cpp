@@ -1,185 +1,105 @@
 #include <algorithm>
 #include <cmath>
+#include <initializer_list>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 #include "Player.h"
 #include "Game.h"
+#include "Gameplay.h"
 
 namespace
 {
-    // Size of each frame in the spritesheet
-    constexpr int FRAME_WIDTH = 16;
-    constexpr int FRAME_HEIGHT = 16;
+    // Size of the sprite on screen and of the hitbox used for collisions.
+    // The hitbox is a bit smaller so that Bomberman fits through 1-tile gaps.
+    constexpr float SPRITE_SIZE = 16.f;
+    const glm::vec2 HITBOX_SIZE(12.f, 14.f);
+    const glm::vec2 HITBOX_OFFSET(2.f, 2.f);
 
-    // Size of the player in pixels (scaled up from the frame size)
-    constexpr int PLAYER_WIDTH = 32;
-    constexpr int PLAYER_HEIGHT = 32;
+    // Physics constants for the player (pixels and seconds)
+    constexpr float GRAVITY = 700.f;
+    constexpr float JUMP_SPEED = 235.f;
+    constexpr float MAX_FALL_SPEED = 280.f;
+    constexpr float PLAYER_SPEED = 64.f;
+    constexpr float SPEED_PER_LEVEL = 12.f;
 
-    // Physics constants for the player
-    constexpr float GRAVITY = 900.f;
-    constexpr float JUMP_SPEED = 360.f;
-    constexpr float PLAYER_SPEED = 120.f;
+    // Jumping is still allowed a few ms after walking off a ledge
+    constexpr int COYOTE_MS = 80;
+    // Blinking time after the heart has been lost
+    constexpr int INVULNERABLE_MS = 2000;
 
-    // Animation frame rates for different player actions
-    constexpr int WALKING_FPS = 8;
-    constexpr int JUMP_FPS = 8;
-    constexpr int MONSTER_HIT_FPS = 6;
-    constexpr int BOMB_DEATH_FPS = 10;
+    constexpr int MAX_BOMBS = 8;
+    constexpr int MAX_FIRE = 8;
+    constexpr int MAX_SPEED_LEVEL = 3;
 
-    // Row 1: walking, 3 frames
-    constexpr int MOVE_X = 0;
-    constexpr int MOVE_Y = 0 * FRAME_HEIGHT;
-
-    // Row 2: jumping, 3 frames
-    constexpr int JUMP_X = 0;
-    constexpr int JUMP_Y = 1 * FRAME_HEIGHT;
-
-    // Row 4: dying by bomb, 4 frames
-    constexpr int BOMB_DEATH_X = 0;
-    constexpr int BOMB_DEATH_Y = 3 * FRAME_HEIGHT;
-
-    // Row 5: hit by monster, 2 frames
-    constexpr int MONSTER_HIT_X = 0;
-    constexpr int MONSTER_HIT_Y = 4 * FRAME_HEIGHT;
+    // All the player frames are in row 0 of images/sprites.png
+    constexpr int PLAYER_ROW = 0;
 
     enum PlayerAnimation
     {
         STAND,
         MOVE,
         JUMP,
-        HIT_BY_BOMB,
-        HIT_BY_MONSTER,
+        FALL,
+        DEATH_BY_BOMB,
+        DEATH_BY_MONSTER,
+        CELEBRATE,
 
         ANIMATION_COUNT
     };
-
-    const glm::ivec2 PLAYER_SIZE(
-        PLAYER_WIDTH,
-        PLAYER_HEIGHT
-    );
 }
 
 Player::Player()
 {
-    sprite = nullptr;
     map = nullptr;
 
-    tileMapDispl = glm::ivec2(0);
     posPlayer = glm::vec2(0.f);
 
     velocityY = 0.f;
-    moveSpeed = PLAYER_SPEED;
+    coyoteMs = 0;
+    invulnerableMs = 0;
 
     onGround = false;
     jumpWasPressed = false;
     facingRight = true;
+    godMode = false;
 
-    alive = true;
     state = NORMAL;
 }
 
-Player::~Player()
+void Player::init(Texture &atlas, ShaderProgram &shaderProgram)
 {
-    delete sprite;
-}
-
-void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
-{
-    tileMapDispl = tileMapPos;
-
-    spritesheet.loadFromFile(
-        "images/texture.jpg",
-        TEXTURE_PIXEL_FORMAT_RGBA
-    );
-
-    spritesheet.setMinFilter(GL_NEAREST);
-    spritesheet.setMagFilter(GL_NEAREST);
-
-    const float textureWidth = static_cast<float>(spritesheet.width());
-    const float textureHeight = static_cast<float>(spritesheet.height());
-
-    sprite = Sprite::createSprite(
-        glm::vec2(PLAYER_WIDTH, PLAYER_HEIGHT),
-        glm::vec2(
-            FRAME_WIDTH / textureWidth,
-            FRAME_HEIGHT / textureHeight
-        ),
-        &spritesheet,
+    sprite.reset(Sprite::createSprite(
+        glm::vec2(SPRITE_SIZE),
+        atlasCellSize(),
+        &atlas,
         &shaderProgram
-    );
+    ));
 
     sprite->setNumberAnimations(ANIMATION_COUNT);
 
-    // Lambda function to calculate texture coordinates for a given frame in the spritesheet
-    auto uv = [&](int x, int y)
-    {
-        return glm::vec2(
-            x / textureWidth,
-            y / textureHeight
-        );
-    };
-
-    // Helper function to add frames to a specific animation
+    // Helper function to add frames (columns of the player row) to an animation
     auto addFrames = [&](int animation,
-                         int startX,
-                         int rowY,
-                         int frameCount,
-                         int framesPerSecond)
+                         std::initializer_list<int> columns,
+                         int framesPerSecond,
+                         bool loop)
     {
-        sprite->setAnimationSpeed(
-            animation,
-            framesPerSecond
-        );
+        sprite->setAnimationSpeed(animation, framesPerSecond);
+        sprite->setAnimationLoop(animation, loop);
 
-        for (int frame = 0; frame < frameCount; ++frame)
-        {
-            sprite->addKeyframe(
-                animation,
-                uv(
-                    startX + frame * FRAME_WIDTH,
-                    rowY
-                )
-            );
-        }
+        for (int column : columns)
+            sprite->addKeyframe(animation, atlasCell(column, PLAYER_ROW));
     };
 
-    // Row 0: standing, 1 frame
-    addFrames(STAND, MOVE_X, MOVE_Y, 1, WALKING_FPS);
-
-    // Row 1: walking, 3 frames
-    addFrames(MOVE, MOVE_X, MOVE_Y, 3, WALKING_FPS);
-
-    // Row 2: jumping, 3 frames
-    addFrames(JUMP, JUMP_X, JUMP_Y, 3, JUMP_FPS);
-
-    // Row 4: death by bomb, 4 frames
-    addFrames(
-        HIT_BY_BOMB,
-        BOMB_DEATH_X,
-        BOMB_DEATH_Y,
-        4,
-        BOMB_DEATH_FPS
-    );
-
-    // Row 5: hit by monster, 2 frames.
-    addFrames(
-        HIT_BY_MONSTER,
-        MONSTER_HIT_X,
-        MONSTER_HIT_Y,
-        2,
-        MONSTER_HIT_FPS
-    );
-
-    // Walk and jump animations loop continuously
-    sprite->setAnimationLoop(STAND, true);
-    sprite->setAnimationLoop(MOVE, true);
-    sprite->setAnimationLoop(JUMP, true);
-
+    addFrames(STAND, { 0 }, 1, true);
+    addFrames(MOVE, { 0, 1, 0, 2 }, 8, true);
+    addFrames(JUMP, { 4 }, 1, true);
+    addFrames(FALL, { 5 }, 1, true);
     // Damage animations are executed only once
-    sprite->setAnimationLoop(HIT_BY_BOMB, false);
-    sprite->setAnimationLoop(HIT_BY_MONSTER, false);
+    addFrames(DEATH_BY_BOMB, { 8, 10, 11, 12 }, 6, false);
+    addFrames(DEATH_BY_MONSTER, { 8, 13, 14, 13, 14 }, 5, false);
+    addFrames(CELEBRATE, { 6, 7 }, 4, true);
 
     sprite->changeAnimation(STAND);
     sprite->setFlipX(false);
@@ -189,148 +109,107 @@ void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
 
 void Player::update(int deltaTime)
 {
-    if (sprite == nullptr || map == nullptr)
+    if (!sprite || map == nullptr)
         return;
 
     sprite->update(deltaTime);
 
+    if (state == DEAD)
+        return;
+
     // Player is playing a death animation
-    if (state == DYING_BY_MONSTER ||
-        state == DYING_BY_BOMB)
+    if (state == DYING)
     {
         if (sprite->animationFinished())
-        {
-            alive = false;
             state = DEAD;
-        }
-
-        updateSpritePosition();
         return;
     }
 
-    if (!alive)
-        return;
+    if (invulnerableMs > 0)
+        invulnerableMs -= deltaTime;
 
     // Limit the delta time to avoid large jumps in physics calculations
-    const float dt = std::min(
-        deltaTime / 1000.f,
-        0.05f
-    );
+    const float dt = std::min(deltaTime / 1000.f, 0.05f);
 
     bool walking = false;
+    const Game &game = Game::instance();
 
-    // Horizontal movement
-    if (Game::instance().getKey(GLFW_KEY_LEFT))
+    // Horizontal movement (no control while celebrating)
+    if (state == NORMAL)
     {
-        facingRight = false;
+        const float speed = PLAYER_SPEED + SPEED_PER_LEVEL * stats.speedLevel;
+        float moveX = 0.f;
 
-        const float previousX = posPlayer.x;
-        posPlayer.x -= moveSpeed * dt;
-
-        glm::ivec2 collisionPosition(
-            static_cast<int>(std::floor(posPlayer.x)),
-            static_cast<int>(std::floor(posPlayer.y))
-        );
-
-        if (map->collisionMoveLeft(
-                collisionPosition,
-                PLAYER_SIZE))
+        if (game.getKey(GLFW_KEY_LEFT))
         {
-            posPlayer.x = previousX;
+            facingRight = false;
+            moveX = -speed * dt;
         }
-        else
+        else if (game.getKey(GLFW_KEY_RIGHT))
         {
-            walking = true;
+            facingRight = true;
+            moveX = speed * dt;
         }
+
+        if (moveX != 0.f)
+            walking = !moveAndCollide(*map, posPlayer, HITBOX_SIZE, moveX, 0);
+
+        const bool jumpKey = game.getKey(GLFW_KEY_UP) || game.getKey(GLFW_KEY_Z);
+
+        // Jump starts once per key press
+        if (jumpKey && !jumpWasPressed && (onGround || coyoteMs > 0))
+        {
+            velocityY = -JUMP_SPEED;
+            onGround = false;
+            coyoteMs = 0;
+        }
+
+        // Releasing the key early makes a shorter jump
+        if (!jumpKey && velocityY < -JUMP_SPEED * 0.4f)
+            velocityY = -JUMP_SPEED * 0.4f;
+
+        jumpWasPressed = jumpKey;
     }
-    else if (Game::instance().getKey(GLFW_KEY_RIGHT))
-    {
-        facingRight = true;
-
-        const float previousX = posPlayer.x;
-        posPlayer.x += moveSpeed * dt;
-
-        glm::ivec2 collisionPosition(
-            static_cast<int>(std::floor(posPlayer.x)),
-            static_cast<int>(std::floor(posPlayer.y))
-        );
-
-        if (map->collisionMoveRight(
-                collisionPosition,
-                PLAYER_SIZE))
-        {
-            posPlayer.x = previousX;
-        }
-        else
-        {
-            walking = true;
-        }
-    }
-
-    const bool jumpKey =
-        Game::instance().getKey(GLFW_KEY_UP);
-
-    // Jump starts once per key press
-    if (jumpKey && !jumpWasPressed && onGround)
-    {
-        velocityY = -JUMP_SPEED;
-        onGround = false;
-    }
-
-    jumpWasPressed = jumpKey;
 
     // Gravity and vertical movement
-    velocityY += GRAVITY * dt;
+    velocityY = std::min(velocityY + GRAVITY * dt, MAX_FALL_SPEED);
 
-    const float previousY = posPlayer.y;
-    posPlayer.y += velocityY * dt;
+    const bool wasOnGround = onGround;
 
-    glm::ivec2 collisionPosition(
-        static_cast<int>(std::floor(posPlayer.x)),
-        static_cast<int>(std::floor(posPlayer.y))
-    );
-
-    if (velocityY >= 0.f)
+    if (moveAndCollide(*map, posPlayer, HITBOX_SIZE, velocityY * dt, 1))
     {
-        int correctedY = collisionPosition.y;
-
-        if (map->collisionMoveDown(
-                collisionPosition,
-                PLAYER_SIZE,
-                &correctedY))
-        {
-            posPlayer.y =
-                static_cast<float>(correctedY);
-
-            velocityY = 0.f;
-            onGround = true;
-        }
-        else
-        {
-            onGround = false;
-        }
+        // Landed on the floor or hit the ceiling
+        onGround = velocityY > 0.f;
+        velocityY = 0.f;
     }
     else
     {
-        if (map->collisionMoveUp(
-                collisionPosition,
-                PLAYER_SIZE))
-        {
-            posPlayer.y = previousY;
-            velocityY = 0.f;
-        }
-
         onGround = false;
     }
 
-    updateAnimation(walking);
+    if (onGround)
+        coyoteMs = COYOTE_MS;
+    else if (wasOnGround && velocityY >= 0.f)
+        coyoteMs = COYOTE_MS;
+    else
+        coyoteMs = std::max(0, coyoteMs - deltaTime);
+
+    if (state == NORMAL)
+        updateAnimation(walking);
+
     updateSpritePosition();
 }
 
 void Player::render()
 {
-    if (sprite != nullptr)
-        sprite->render();
+    if (!sprite)
+        return;
+
+    // Blink while invulnerable
+    if (invulnerableMs > 0 && (invulnerableMs / 80) % 2 == 0)
+        return;
+
+    sprite->render();
 }
 
 void Player::setTileMap(TileMap *tileMap)
@@ -338,36 +217,134 @@ void Player::setTileMap(TileMap *tileMap)
     map = tileMap;
 }
 
-void Player::setPosition(const glm::vec2 &pos)
+void Player::setTile(const glm::ivec2 &tile)
 {
-    posPlayer = pos;
+    const float tileSize = float(map != nullptr ? map->getTileSize() : 16);
+
+    // Horizontally centered in the tile, feet on the floor of the tile
+    posPlayer = glm::vec2(
+        tile.x * tileSize + (tileSize - HITBOX_SIZE.x) / 2.f,
+        (tile.y + 1) * tileSize - HITBOX_SIZE.y
+    );
+
     velocityY = 0.f;
     onGround = false;
+    coyoteMs = 0;
+    invulnerableMs = 0;
+    jumpWasPressed = true;
+    facingRight = true;
+    state = NORMAL;
+
+    if (sprite)
+        sprite->changeAnimation(STAND);
 
     updateSpritePosition();
 }
 
+glm::vec2 Player::getCenter() const
+{
+    return posPlayer + HITBOX_SIZE / 2.f;
+}
+
+glm::vec4 Player::getBounds() const
+{
+    return glm::vec4(posPlayer, HITBOX_SIZE);
+}
+
+glm::ivec2 Player::getTile() const
+{
+    if (map == nullptr)
+        return glm::ivec2(0);
+
+    return map->toTile(getCenter());
+}
+
 bool Player::isAlive() const
 {
-    return alive;
+    return state != DEAD;
 }
 
-void Player::hitByMonster()
+bool Player::isDying() const
 {
-    if (!alive || state != NORMAL)
-        return;
-
-    state = DYING_BY_MONSTER;
-    sprite->changeAnimation(HIT_BY_MONSTER);
+    return state == DYING || state == DEAD;
 }
 
-void Player::hitByBomb()
+bool Player::hurt(bool byBomb)
 {
-    if (!alive || state != NORMAL)
+    if (state != NORMAL || godMode || invulnerableMs > 0)
+        return false;
+
+    // The heart absorbs the hit
+    if (stats.heart)
+    {
+        stats.heart = false;
+        invulnerableMs = INVULNERABLE_MS;
+        return false;
+    }
+
+    state = DYING;
+    sprite->changeAnimation(byBomb ? DEATH_BY_BOMB : DEATH_BY_MONSTER);
+    return true;
+}
+
+void Player::kill()
+{
+    if (state != NORMAL)
         return;
 
-    state = DYING_BY_BOMB;
-    sprite->changeAnimation(HIT_BY_BOMB);
+    invulnerableMs = 0;
+    state = DYING;
+    sprite->changeAnimation(DEATH_BY_MONSTER);
+}
+
+void Player::celebrate()
+{
+    if (state != NORMAL)
+        return;
+
+    state = CELEBRATING;
+    invulnerableMs = 0;
+    sprite->changeAnimation(CELEBRATE);
+    sprite->setFlipX(false);
+}
+
+void Player::applyItem(ItemType type)
+{
+    switch (type)
+    {
+    case ItemType::BombUp:
+        stats.maxBombs = std::min(stats.maxBombs + 1, MAX_BOMBS);
+        break;
+    case ItemType::FireUp:
+        stats.fireRange = std::min(stats.fireRange + 1, MAX_FIRE);
+        break;
+    case ItemType::Heart:
+        stats.heart = true;
+        break;
+    case ItemType::SpeedUp:
+        stats.speedLevel = std::min(stats.speedLevel + 1, MAX_SPEED_LEVEL);
+        break;
+    }
+}
+
+const PlayerStats &Player::getStats() const
+{
+    return stats;
+}
+
+void Player::setStats(const PlayerStats &newStats)
+{
+    stats = newStats;
+}
+
+void Player::setGodMode(bool enabled)
+{
+    godMode = enabled;
+}
+
+bool Player::isGodMode() const
+{
+    return godMode;
 }
 
 void Player::updateAnimation(bool walking)
@@ -375,7 +352,7 @@ void Player::updateAnimation(bool walking)
     int wantedAnimation;
 
     if (!onGround)
-        wantedAnimation = JUMP;
+        wantedAnimation = velocityY < 0.f ? JUMP : FALL;
     else if (walking)
         wantedAnimation = MOVE;
     else
@@ -390,10 +367,9 @@ void Player::updateAnimation(bool walking)
 
 void Player::updateSpritePosition()
 {
-    if (sprite == nullptr)
+    if (!sprite)
         return;
 
-    sprite->setPosition(
-        glm::vec2(tileMapDispl) + posPlayer
-    );
+    // Rounded to whole pixels so that the pixel art does not shimmer
+    sprite->setPosition(glm::round(posPlayer - HITBOX_OFFSET));
 }
