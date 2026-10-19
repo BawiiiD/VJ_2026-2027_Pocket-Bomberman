@@ -29,6 +29,8 @@ namespace
     constexpr int MAX_HEALTH = 5;
     constexpr int ATTACK_MS = 2400;
     constexpr int BERSERK_ATTACK_MS = 1600;   // Low health
+    // How long the boss remains visually locked in its attack animation 
+    // before returning to its normal resting stance
     constexpr int ATTACK_POSE_MS = 500;
     constexpr int INVULNERABLE_MS = 1000;
     constexpr int DYING_MS = 2000;
@@ -84,6 +86,7 @@ void Projectile::update(int deltaTime, const TileMap &map)
 
     sprite->update(deltaTime);
 
+    // Prevent tunneling through walls
     const float dt = std::min(deltaTime / 1000.f, 0.05f);
     lifeMs -= deltaTime;
 
@@ -97,12 +100,14 @@ void Projectile::update(int deltaTime, const TileMap &map)
     }
     else
     {
-        // Birds fly in a wave
         position.x += velocity.x * dt;
         position.y += std::sin(lifeMs / 250.f) * BIRD_WAVE * dt;
     }
 
     const glm::vec2 mapSize = glm::vec2(map.getPixelSize());
+    // The projectile is alive until it hits a wall or goes out of bounds
+    // If the projectile goes out of bounds on the left or top,
+    // we need to make sure it is still considered alive until it has fully left the screen
     if (lifeMs <= 0 ||
         position.x < -ATLAS_CELL || position.x > mapSize.x ||
         position.y < -ATLAS_CELL || position.y > mapSize.y)
@@ -110,7 +115,7 @@ void Projectile::update(int deltaTime, const TileMap &map)
         alive = false;
     }
 
-    // The sprite is centered on the hitbox
+    // Displace the position of the sprite so that its hitbox is centered on the projectile's position
     sprite->setPosition(glm::round(position - (glm::vec2(float(ATLAS_CELL)) - PROJECTILE_SIZE) / 2.f));
 }
 

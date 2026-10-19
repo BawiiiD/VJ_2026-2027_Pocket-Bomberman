@@ -13,6 +13,7 @@
 class Projectile
 {
 public:
+    // Projectile types
     enum class Kind
     {
         SEED,
@@ -36,7 +37,9 @@ private:
     Kind kind;
     glm::vec2 position;
     glm::vec2 velocity;
+    // Time left before the projectile disappears
     int lifeMs;
+    // The projectile is alive until it hits a wall or goes out of bounds
     bool alive;
     std::unique_ptr<Sprite> sprite;
 };
