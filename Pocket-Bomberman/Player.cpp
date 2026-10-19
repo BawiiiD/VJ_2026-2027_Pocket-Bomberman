@@ -9,38 +9,36 @@
 
 namespace
 {
-    // Size of each frame in the spritesheet
+    // Tamaño de cada recorte dentro del spritesheet.
     constexpr int FRAME_WIDTH = 16;
     constexpr int FRAME_HEIGHT = 16;
 
-    // Size of the player in pixels (scaled up from the frame size)
+    // Tamaño con el que se dibuja y colisiona el personaje.
     constexpr int PLAYER_WIDTH = 32;
     constexpr int PLAYER_HEIGHT = 32;
 
-    // Physics constants for the player
     constexpr float GRAVITY = 900.f;
     constexpr float JUMP_SPEED = 360.f;
     constexpr float PLAYER_SPEED = 120.f;
 
-    // Animation frame rates for different player actions
     constexpr int WALKING_FPS = 8;
     constexpr int JUMP_FPS = 8;
     constexpr int MONSTER_HIT_FPS = 6;
     constexpr int BOMB_DEATH_FPS = 10;
 
-    // Row 1: walking, 3 frames
+    // Fila 1: caminar, 3 frames.
     constexpr int MOVE_X = 0;
     constexpr int MOVE_Y = 0 * FRAME_HEIGHT;
 
-    // Row 2: jumping, 3 frames
+    // Fila 2: saltar, 3 frames.
     constexpr int JUMP_X = 0;
     constexpr int JUMP_Y = 1 * FRAME_HEIGHT;
 
-    // Row 4: dying by bomb, 4 frames
+    // Fila 4: morir por bomba, 4 frames.
     constexpr int BOMB_DEATH_X = 0;
     constexpr int BOMB_DEATH_Y = 3 * FRAME_HEIGHT;
 
-    // Row 5: hit by monster, 2 frames
+    // Fila 5: daño/muerte por monstruo, 2 frames.
     constexpr int MONSTER_HIT_X = 0;
     constexpr int MONSTER_HIT_Y = 4 * FRAME_HEIGHT;
 
@@ -85,7 +83,8 @@ Player::~Player()
     delete sprite;
 }
 
-void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
+void Player::init(const glm::ivec2 &tileMapPos,
+                  ShaderProgram &shaderProgram)
 {
     tileMapDispl = tileMapPos;
 
@@ -97,8 +96,11 @@ void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
     spritesheet.setMinFilter(GL_NEAREST);
     spritesheet.setMagFilter(GL_NEAREST);
 
-    const float textureWidth = static_cast<float>(spritesheet.width());
-    const float textureHeight = static_cast<float>(spritesheet.height());
+    const float textureWidth =
+        static_cast<float>(spritesheet.width());
+
+    const float textureHeight =
+        static_cast<float>(spritesheet.height());
 
     sprite = Sprite::createSprite(
         glm::vec2(PLAYER_WIDTH, PLAYER_HEIGHT),
@@ -112,7 +114,6 @@ void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
 
     sprite->setNumberAnimations(ANIMATION_COUNT);
 
-    // Lambda function to calculate texture coordinates for a given frame in the spritesheet
     auto uv = [&](int x, int y)
     {
         return glm::vec2(
@@ -121,7 +122,6 @@ void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
         );
     };
 
-    // Helper function to add frames to a specific animation
     auto addFrames = [&](int animation,
                          int startX,
                          int rowY,
@@ -145,16 +145,16 @@ void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
         }
     };
 
-    // Row 0: standing, 1 frame
+    // Quieto: primer frame de la animación de caminar.
     addFrames(STAND, MOVE_X, MOVE_Y, 1, WALKING_FPS);
 
-    // Row 1: walking, 3 frames
+    // Fila 1: caminar, 3 frames.
     addFrames(MOVE, MOVE_X, MOVE_Y, 3, WALKING_FPS);
 
-    // Row 2: jumping, 3 frames
+    // Fila 2: saltar, 3 frames.
     addFrames(JUMP, JUMP_X, JUMP_Y, 3, JUMP_FPS);
 
-    // Row 4: death by bomb, 4 frames
+    // Fila 4: muerte por bomba, 4 frames.
     addFrames(
         HIT_BY_BOMB,
         BOMB_DEATH_X,
@@ -163,7 +163,7 @@ void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
         BOMB_DEATH_FPS
     );
 
-    // Row 5: hit by monster, 2 frames.
+    // Fila 5: golpe por monstruo, 2 frames.
     addFrames(
         HIT_BY_MONSTER,
         MONSTER_HIT_X,
@@ -172,12 +172,12 @@ void Player::init(const glm::ivec2 &tileMapPos, ShaderProgram &shaderProgram)
         MONSTER_HIT_FPS
     );
 
-    // Walk and jump animations loop continuously
+    // Caminar y saltar se repiten.
     sprite->setAnimationLoop(STAND, true);
     sprite->setAnimationLoop(MOVE, true);
     sprite->setAnimationLoop(JUMP, true);
 
-    // Damage animations are executed only once
+    // Muerte y daño se ejecutan solo una vez.
     sprite->setAnimationLoop(HIT_BY_BOMB, false);
     sprite->setAnimationLoop(HIT_BY_MONSTER, false);
 
@@ -194,7 +194,7 @@ void Player::update(int deltaTime)
 
     sprite->update(deltaTime);
 
-    // Player is playing a death animation
+    // El jugador está reproduciendo una muerte.
     if (state == DYING_BY_MONSTER ||
         state == DYING_BY_BOMB)
     {
@@ -211,7 +211,7 @@ void Player::update(int deltaTime)
     if (!alive)
         return;
 
-    // Limit the delta time to avoid large jumps in physics calculations
+    // Delta time en segundos y limitado por seguridad.
     const float dt = std::min(
         deltaTime / 1000.f,
         0.05f
@@ -219,7 +219,7 @@ void Player::update(int deltaTime)
 
     bool walking = false;
 
-    // Horizontal movement
+    // Movimiento horizontal.
     if (Game::instance().getKey(GLFW_KEY_LEFT))
     {
         facingRight = false;
@@ -270,7 +270,7 @@ void Player::update(int deltaTime)
     const bool jumpKey =
         Game::instance().getKey(GLFW_KEY_UP);
 
-    // Jump starts once per key press
+    // El salto empieza una vez por pulsación.
     if (jumpKey && !jumpWasPressed && onGround)
     {
         velocityY = -JUMP_SPEED;
@@ -279,7 +279,7 @@ void Player::update(int deltaTime)
 
     jumpWasPressed = jumpKey;
 
-    // Gravity and vertical movement
+    // Gravedad.
     velocityY += GRAVITY * dt;
 
     const float previousY = posPlayer.y;
@@ -384,7 +384,8 @@ void Player::updateAnimation(bool walking)
     if (sprite->animation() != wantedAnimation)
         sprite->changeAnimation(wantedAnimation);
 
-    // Update the sprite's horizontal flip based on the player's facing direction
+    // El atlas está orientado hacia la derecha.
+    // Para mirar hacia la izquierda se refleja horizontalmente.
     sprite->setFlipX(!facingRight);
 }
 
