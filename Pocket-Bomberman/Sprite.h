@@ -14,7 +14,6 @@ using namespace std;
 class Sprite
 {
 public:
-    // 
     Sprite(const glm::vec2 &quadSize,
            const glm::vec2 &sizeInSpritesheet,
            Texture *spritesheet,
@@ -62,7 +61,6 @@ private:
 
     glm::vec2 texCoordDispl;
 
-    // Animation data, each animation has a vector of keyframes and a speed
     vector<AnimKeyframes> animations;
     vector<bool> animationLoop;
 
