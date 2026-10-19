@@ -1,53 +1,27 @@
 #ifndef EXPLOSION_H
 #define EXPLOSION_H
 
-#include <memory>
-#include <vector>
-
-#include "Sprite.h"
+#include "EntityVisual.h"
 
 class Explosion
 {
 public:
-    // The order matches the columns of images/explosion.png
-    enum class Piece
-    {
-        CENTER,
-        HORIZONTAL,
-        VERTICAL,
-        END_LEFT,
-        END_RIGHT,
-        END_UP,
-        END_DOWN
-    };
-
-    struct Cell
-    {
-        glm::ivec2 tile;
-        Piece piece;
-    };
-
-    Explosion(const std::vector<Cell> &cells,
+    Explosion(glm::ivec2 tile,
               int tileSize,
-              Texture &texture,
+              glm::ivec2 offset,
               ShaderProgram &program);
 
-    void update(int deltaTime);
-    void render();
-
+    void update(int dt);
     bool finished() const;
-    // True if any tile of the explosion overlaps the box
-    bool hits(const glm::vec4 &box) const;
-    const std::vector<Cell> &getCells() const;
+    glm::ivec2 getTilePos() const;
+    glm::vec4 bounds() const;
+    void render() const;
 
 private:
-    glm::vec2 pieceFrame(Piece piece, int phase) const;
-
-private:
-    std::vector<Cell> cells;
+    glm::ivec2 tile;
     int tileSize;
-    int elapsedMs;
-    std::unique_ptr<Sprite> sprite;
+    int remainingMs;
+    EntityVisual visual;
 };
 
 #endif

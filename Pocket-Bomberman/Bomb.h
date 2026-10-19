@@ -1,42 +1,36 @@
 #ifndef BOMB_H
 #define BOMB_H
 
-#include <memory>
-
-#include "Sprite.h"
+#include "EntityVisual.h"
 
 class Bomb
 {
 public:
     Bomb(glm::ivec2 tile,
          int range,
+         int fuseMs,
+         bool remote,
          int tileSize,
-         Texture &atlas,
+         glm::ivec2 offset,
          ShaderProgram &program);
 
-    void update(int deltaTime);
-    void render();
-
-    // Makes the bomb explode on the next update (chain reactions)
+    void update(int dt);
     void trigger();
     bool ready() const;
-
+    bool isRemote() const;
     glm::ivec2 getTilePos() const;
     int getRange() const;
     glm::vec4 bounds() const;
-
-    // A bomb is solid when the player and enemies are not inside it
-    bool isSolid() const;
-    void setSolid(bool solid);
+    void render() const;
 
 private:
     glm::ivec2 tile;
     int range;
     int remainingMs;
     int tileSize;
+    bool remote;
     bool triggered;
-    bool solid;
-    std::unique_ptr<Sprite> sprite;
+    EntityVisual visual;
 };
 
 #endif

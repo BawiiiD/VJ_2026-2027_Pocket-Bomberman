@@ -1,71 +1,33 @@
 #include "Bomb.h"
-#include "Gameplay.h"
-
-namespace
-{
-    constexpr int FUSE_MS = 2500;
-
-    constexpr int BOMB_ROW = 2;
-    constexpr int BOMB_FRAMES = 3;
-    constexpr int BOMB_FPS = 6;
-    // The bomb blinks faster just before exploding
-    constexpr int HURRY_MS = 800;
-    constexpr int HURRY_FPS = 14;
-
-    enum BombAnimation
-    {
-        FUSE,
-        HURRY
-    };
-}
 
 Bomb::Bomb(glm::ivec2 tile,
            int range,
+           int fuseMs,
+           bool remote,
            int tileSize,
-           Texture &atlas,
+           glm::ivec2 offset,
            ShaderProgram &program)
     : tile(tile),
       range(range),
-      remainingMs(FUSE_MS),
+      remainingMs(fuseMs),
       tileSize(tileSize),
+      remote(remote),
       triggered(false),
-      solid(false)
+      visual("images/gameplay/bomb.png", tile, tileSize, offset, program)
 {
-    sprite.reset(Sprite::createSprite(
-        glm::vec2(float(tileSize)),
-        atlasCellSize(),
-        &atlas,
-        &program
-    ));
+}
 
-    sprite->setNumberAnimations(2);
-    sprite->setAnimationSpeed(FUSE, BOMB_FPS);
-    sprite->setAnimationSpeed(HURRY, HURRY_FPS);
-    for (int frame = 0; frame < BOMB_FRAMES; ++frame)
+void Bomb::update(int dt)
+{
+    if (!remote)
     {
-        sprite->addKeyframe(FUSE, atlasCell(frame, BOMB_ROW));
-        sprite->addKeyframe(HURRY, atlasCell(frame, BOMB_ROW));
+        remainingMs -= dt;
+
+        if (remainingMs <= 0)
+        {
+            triggered = true;
+        }
     }
-    sprite->changeAnimation(FUSE);
-    sprite->setPosition(glm::vec2(tile * tileSize));
-}
-
-void Bomb::update(int deltaTime)
-{
-    sprite->update(deltaTime);
-
-    remainingMs -= deltaTime;
-
-    if (remainingMs <= HURRY_MS && sprite->animation() != HURRY)
-        sprite->changeAnimation(HURRY);
-
-    if (remainingMs <= 0)
-        triggered = true;
-}
-
-void Bomb::render()
-{
-    sprite->render();
 }
 
 void Bomb::trigger()
@@ -76,6 +38,11 @@ void Bomb::trigger()
 bool Bomb::ready() const
 {
     return triggered;
+}
+
+bool Bomb::isRemote() const
+{
+    return remote;
 }
 
 glm::ivec2 Bomb::getTilePos() const
@@ -98,12 +65,7 @@ glm::vec4 Bomb::bounds() const
     );
 }
 
-bool Bomb::isSolid() const
+void Bomb::render() const
 {
-    return solid;
-}
-
-void Bomb::setSolid(bool value)
-{
-    solid = value;
+    visual.render();
 }

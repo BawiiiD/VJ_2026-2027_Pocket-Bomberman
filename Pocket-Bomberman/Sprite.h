@@ -14,6 +14,7 @@ using namespace std;
 class Sprite
 {
 public:
+    // 
     Sprite(const glm::vec2 &quadSize,
            const glm::vec2 &sizeInSpritesheet,
            Texture *spritesheet,
@@ -40,10 +41,7 @@ public:
     void changeAnimation(int animId);
     int animation() const;
 
-    void setFrame(const glm::vec2 &texCoord);
-
     void setPosition(const glm::vec2 &pos);
-    glm::vec2 getPosition() const;
     void setFlipX(bool flip);
 
 private:

@@ -93,14 +93,10 @@ void Sprite::update(int deltaTime)
     if (animations[currentAnimation].keyframeDispl.empty())
         return;
 
+    timeAnimation += deltaTime;
+
     const float millisecondsPerFrame =
         animations[currentAnimation].millisecsPerKeyframe;
-
-    // Animations without a speed never advance (avoids an infinite loop below)
-    if (millisecondsPerFrame <= 0.f)
-        return;
-
-    timeAnimation += deltaTime;
 
     // While the accumulated time exceeds the duration of a single frame, advance to the next keyframe
     while (timeAnimation >= millisecondsPerFrame)
@@ -274,18 +270,6 @@ int Sprite::animation() const
 void Sprite::setPosition(const glm::vec2 &pos)
 {
     position = pos;
-}
-
-// Show a static frame of the spritesheet
-void Sprite::setFrame(const glm::vec2 &texCoord)
-{
-    texCoordDispl = texCoord;
-}
-
-// Get the current position of the sprite in screen coordinates
-glm::vec2 Sprite::getPosition() const
-{
-    return position;
 }
 
 // Set whether the sprite should be flipped horizontally or not
