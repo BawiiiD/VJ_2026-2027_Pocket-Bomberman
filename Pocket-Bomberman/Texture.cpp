@@ -7,9 +7,6 @@ using namespace std;
 
 Texture::Texture()
 {
-	texId = 0;
-	widthTex = 0;
-	heightTex = 0;
 	wrapS = GL_REPEAT;
 	wrapT = GL_REPEAT;
 	minFilter = GL_LINEAR_MIPMAP_LINEAR;
@@ -49,7 +46,7 @@ bool Texture::loadFromFile(const string &filename, PixelFormat format)
 		break;
 	}
 	glGenerateMipmap(GL_TEXTURE_2D);
-	SOIL_free_image_data(image);
+	delete[] image;
 	
 	return true;
 }
@@ -62,16 +59,6 @@ void Texture::loadFromGlyphBuffer(unsigned char *buffer, int width, int height)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, buffer);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-}
-
-void Texture::loadFromRGBABuffer(const unsigned char *buffer, int width, int height)
-{
-	widthTex = width;
-	heightTex = height;
-	glGenTextures(1, &texId);
-	glBindTexture(GL_TEXTURE_2D, texId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 void Texture::createEmptyTexture(int width, int height)

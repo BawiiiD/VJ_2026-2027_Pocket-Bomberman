@@ -1,88 +1,60 @@
 #ifndef _PLAYER_INCLUDE
 #define _PLAYER_INCLUDE
 
-#include <memory>
 #include <glm/glm.hpp>
 
 #include "Sprite.h"
 #include "TileMap.h"
-#include "ItemType.h"
-
-// Abilities improved by the items. They are kept between levels.
-struct PlayerStats
-{
-    int maxBombs = 1;
-    int fireRange = 1;
-    int speedLevel = 0;
-    bool heart = false;
-};
 
 class Player
 {
 public:
     Player();
+    ~Player();
 
-    void init(Texture &atlas, ShaderProgram &shaderProgram);
+    void init(const glm::ivec2 &tileMapPos,
+              ShaderProgram &shaderProgram);
 
     void update(int deltaTime);
     void render();
 
     void setTileMap(TileMap *tileMap);
-    // Places the player standing in the given tile
-    void setTile(const glm::ivec2 &tile);
-    glm::vec2 getCenter() const;
-    glm::vec4 getBounds() const;
-    glm::ivec2 getTile() const;
+    void setPosition(const glm::vec2 &pos);
 
-    // False once the death animation has finished
     bool isAlive() const;
-    bool isDying() const;
 
-    // Returns true if the hit kills the player. The heart, god mode and the
-    // blinking time after losing the heart protect him.
-    bool hurt(bool byBomb);
-    // Kills the player even if he has the heart (time out)
-    void kill();
-    // Victory pose when reaching the exit door
-    void celebrate();
-
-    void applyItem(ItemType type);
-    const PlayerStats &getStats() const;
-    void setStats(const PlayerStats &newStats);
-
-    void setGodMode(bool enabled);
-    bool isGodMode() const;
+    void hitByMonster();
+    void hitByBomb();
 
 private:
     enum PlayerState
     {
         NORMAL,
-        DYING,
-        DEAD,
-        CELEBRATING
+        DYING_BY_MONSTER,
+        DYING_BY_BOMB,
+        DEAD
     };
 
     void updateAnimation(bool walking);
     void updateSpritePosition();
 
 private:
-    std::unique_ptr<Sprite> sprite;
+    Texture spritesheet;
+    Sprite *sprite;
     TileMap *map;
 
-    // Position of the hitbox (top-left corner) in pixels
+    glm::ivec2 tileMapDispl;
     glm::vec2 posPlayer;
 
     float velocityY;
-    int coyoteMs;
-    int invulnerableMs;
+    float moveSpeed;
 
     bool onGround;
     bool jumpWasPressed;
     bool facingRight;
-    bool godMode;
 
+    bool alive;
     PlayerState state;
-    PlayerStats stats;
 };
 
 #endif // _PLAYER_INCLUDE

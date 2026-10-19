@@ -1,6 +1,0 @@
-# Boss arena: the exit door only appears once the boss is defeated.
-MAP levels/map05.tmx
-TIME 180
-PLAYER 2 8
-BOSS 11 7
-DOOR 7 8
