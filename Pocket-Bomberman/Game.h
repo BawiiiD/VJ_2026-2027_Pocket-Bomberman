@@ -28,7 +28,6 @@ public:
 	}
 	
 	void init();
-	void shutdown();
 	bool update(int deltaTime);
 	void render();
 	

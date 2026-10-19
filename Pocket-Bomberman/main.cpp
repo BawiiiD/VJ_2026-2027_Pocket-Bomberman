@@ -83,8 +83,6 @@ int main(void)
 		glfwPollEvents();
 	}
 
-	Game::instance().shutdown();
-    glfwDestroyWindow(window);
 	glfwTerminate();
 	return 0;
 }
