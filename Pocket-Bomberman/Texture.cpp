@@ -25,7 +25,7 @@ Texture::~Texture()
 bool Texture::loadFromFile(const string &filename, PixelFormat format)
 {
 	unsigned char *image = NULL;
-	
+	// Decodes the PNG and returns a plain array of pixels in CPU memory (RGB or RGBA)
 	switch(format)
 	{
 	case TEXTURE_PIXEL_FORMAT_RGB:
@@ -37,8 +37,10 @@ bool Texture::loadFromFile(const string &filename, PixelFormat format)
 	}
 	if(image == NULL)
 		return false;
+	// Creates an empty texture in GPU and make it the current one
 	glGenTextures(1, &texId);
 	glBindTexture(GL_TEXTURE_2D, texId);
+	// Copies the pixel array to GPU memory
 	switch(format)
 	{
 	case TEXTURE_PIXEL_FORMAT_RGB:
@@ -64,6 +66,7 @@ void Texture::loadFromGlyphBuffer(unsigned char *buffer, int width, int height)
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
+// Uploads pixels that were build in memory
 void Texture::loadFromRGBABuffer(const unsigned char *buffer, int width, int height)
 {
 	widthTex = width;
@@ -99,6 +102,7 @@ void Texture::generateMipmap()
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
+// Sets the texture wrapping mode (GL_REPEAT, GL_CLAMP_TO_EDGE, etc.)
 void Texture::setWrapS(GLint value)
 {
 	wrapS = value;
@@ -109,11 +113,13 @@ void Texture::setWrapT(GLint value)
 	wrapT = value;
 }
 
+// Used when the texture is drawn smaller
 void Texture::setMinFilter(GLint value)
 {
 	minFilter = value;
 }
 
+// Used when the texture is drawn bigger
 void Texture::setMagFilter(GLint value)
 {
 	magFilter = value;

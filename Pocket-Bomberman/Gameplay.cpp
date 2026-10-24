@@ -41,6 +41,7 @@ glm::vec4 shrink(const glm::vec4 &box, float amount)
     );
 }
 
+// Moves a box along one axis (0 = x, 1 = y)
 bool moveAndCollide(const TileMap &map,
                     glm::vec2 &pos,
                     const glm::vec2 &size,

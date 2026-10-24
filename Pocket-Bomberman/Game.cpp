@@ -20,11 +20,13 @@ void Game::init()
 	// All the characters, items and effects are in this image
 	if(!atlas.loadFromFile("images/sprites.png", TEXTURE_PIXEL_FORMAT_RGBA))
 		cout << "Could not load images/sprites.png" << endl;
+	// Don't repeat the texture at the edges
 	atlas.setWrapS(GL_CLAMP_TO_EDGE);
 	atlas.setWrapT(GL_CLAMP_TO_EDGE);
+	// For pixel art
 	atlas.setMinFilter(GL_NEAREST);
 	atlas.setMagFilter(GL_NEAREST);
-
+	// Same font, different sizes
 	text.init(texProgram, 8);
 	bigText.init(texProgram, 16);
 
@@ -59,6 +61,7 @@ bool Game::update(int deltaTime)
 
 void Game::render()
 {
+	// Reset the viewport every frame
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -92,7 +95,7 @@ void Game::keyPressed(int key)
 	}
 	else
 	{
-		// Escape goes back to the main menu
+		// Escape goes back to the menu
 		if(key == GLFW_KEY_ESCAPE)
 		{
 			menu.reset();

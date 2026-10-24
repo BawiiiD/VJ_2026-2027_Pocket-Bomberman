@@ -14,10 +14,11 @@
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-// Everything is drawn at 320x240 (like a handheld console) and scaled to the window
+// The whole game is designed in a 320x240 resolution,
+// and each logical pixel becomes 2x2 window pixels
 #define PIXEL_SCALE 2
-#define VIEW_WIDTH (SCREEN_WIDTH / PIXEL_SCALE)
-#define VIEW_HEIGHT (SCREEN_HEIGHT / PIXEL_SCALE)
+#define VIEW_WIDTH (SCREEN_WIDTH / PIXEL_SCALE) // 320
+#define VIEW_HEIGHT (SCREEN_HEIGHT / PIXEL_SCALE) // 240
 
 
 // Game is a singleton (a class with a single instance) that represents our whole application.

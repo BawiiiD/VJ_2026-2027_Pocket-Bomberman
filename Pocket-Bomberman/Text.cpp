@@ -84,9 +84,12 @@ namespace
 
         for (const Glyph &glyph : GLYPHS)
         {
+            // Cell coordinates of the glyph in the font texture
             const int cellX = (glyph.character % COLUMNS) * CELL;
             const int cellY = (glyph.character / COLUMNS) * CELL;
 
+            // For each character of the glyph, if it's a '#', we set the corresponding pixel to white
+            // Otherwise, we leave it transparent (0, 0, 0, 0)
             for (int y = 0; y < GLYPH_HEIGHT; ++y)
             {
                 for (int x = 0; x < GLYPH_WIDTH; ++x)
@@ -144,7 +147,9 @@ void Text::render(const std::string &str,
     glm::vec2 cursor = pos;
     for (char c : str)
     {
+        // Convert lowercase to uppercase
         const int code = std::toupper(static_cast<unsigned char>(c));
+        // Characters with no glyph are  drawn as spaces (so we still move the cursor)
         if (code != ' ' && code < COLUMNS * ROWS)
         {
             sprite->setFrame(glm::vec2(
@@ -157,6 +162,7 @@ void Text::render(const std::string &str,
         cursor.x += advance;
     }
 
+    // Reset the color to white
     program->setUniform4f("color", 1.f, 1.f, 1.f, 1.f);
 }
 

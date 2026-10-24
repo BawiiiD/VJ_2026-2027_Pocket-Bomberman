@@ -96,7 +96,7 @@ void Sprite::update(int deltaTime)
     const float millisecondsPerFrame =
         animations[currentAnimation].millisecsPerKeyframe;
 
-    // Animations without a speed never advance (avoids an infinite loop below)
+    // Animations without a speed never advance
     if (millisecondsPerFrame <= 0.f)
         return;
 

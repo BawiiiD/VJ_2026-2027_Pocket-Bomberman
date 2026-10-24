@@ -19,7 +19,8 @@ namespace
 
     // Physics constants for the player (pixels and seconds)
     constexpr float GRAVITY = 700.f;
-    constexpr float JUMP_SPEED = 235.f;
+    // A full jump rises about 55 px: enough to climb 3 tiles (48 px) but not 4
+    constexpr float JUMP_SPEED = 285.f;
     constexpr float MAX_FALL_SPEED = 280.f;
     constexpr float PLAYER_SPEED = 64.f;
     constexpr float SPEED_PER_LEVEL = 12.f;
@@ -94,11 +95,12 @@ void Player::init(Texture &atlas, ShaderProgram &shaderProgram)
 
     addFrames(STAND, { 0 }, 1, true);
     addFrames(MOVE, { 0, 1, 0, 2 }, 8, true);
-    addFrames(JUMP, { 4 }, 1, true);
-    addFrames(FALL, { 5 }, 1, true);
+    // Air animations start with the crouched frame and then stay on the last one
+    addFrames(JUMP, { 3, 4 }, 10, false);
+    addFrames(FALL, { 3, 5 }, 10, false);
     // Damage animations are executed only once
-    addFrames(DEATH_BY_BOMB, { 8, 10, 11, 12 }, 6, false);
-    addFrames(DEATH_BY_MONSTER, { 8, 13, 14, 13, 14 }, 5, false);
+    addFrames(DEATH_BY_BOMB, { 10, 11, 12 }, 6, false);
+    addFrames(DEATH_BY_MONSTER, { 13, 14, 13, 14 }, 5, false);
     addFrames(CELEBRATE, { 6, 7 }, 4, true);
 
     sprite->changeAnimation(STAND);

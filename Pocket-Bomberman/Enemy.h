@@ -2,6 +2,7 @@
 #define ENEMY_H
 
 #include <memory>
+#include <vector>
 #include <glm/glm.hpp>
 
 #include "Sprite.h"
@@ -39,11 +40,14 @@ public:
     glm::vec4 getBounds() const;
 
 protected:
-    Enemy(int atlasRow);
+    // Each enemy type has its own row of the atlas and its own frame columns
+    Enemy(int atlasRow,
+          std::vector<int> moveColumns,
+          std::vector<int> deathColumns);
 
     virtual void think(float dt, const glm::vec2 &playerCenter) = 0;
 
-    // Is there floor in front of the enemy, in the given direction?
+    // Is there floor in front of the enemy in the given direction?
     bool groundAhead(int dir) const;
 
 protected:
@@ -63,6 +67,8 @@ private:
     };
 
     int atlasRow;
+    std::vector<int> moveColumns;
+    std::vector<int> deathColumns;
     State state;
     int dyingMs;
     std::unique_ptr<Sprite> sprite;

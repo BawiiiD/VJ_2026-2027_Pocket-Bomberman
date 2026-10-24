@@ -72,7 +72,6 @@ private:
 private:
 	ShaderProgram *texProgram;
 	Texture *atlas;
-	// Explosion pieces (images/explosion.png)
 	Texture explosionTexture;
 	Text *text;
 	Text *bigText;

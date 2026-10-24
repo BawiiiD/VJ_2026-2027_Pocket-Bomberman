@@ -19,7 +19,7 @@ namespace
 	constexpr int HUD_HEIGHT = 16;
 	constexpr int WORLD_VIEW_HEIGHT = VIEW_HEIGHT - HUD_HEIGHT;
 
-	// Time the different messages stay on screen
+	// Time that messages stay on screen
 	constexpr int STAGE_TITLE_MS = 1500;
 	constexpr int LEVEL_CLEAR_MS = 2500;
 	constexpr int AFTER_DEATH_MS = 1200;
@@ -466,23 +466,21 @@ void Scene::explode(const Bomb &bomb)
 		for(int distance = 1; distance <= bomb.getRange(); distance++)
 		{
 			glm::ivec2 tile = bomb.getTilePos() + direction.step * distance;
+			// getTileType ignores the blocked tiles, so solid bombs are found below
 			TileType type = map->getTileType(tile.x, tile.y);
 			if(type == TileType::SOLID)
 				break;
 
-			Explosion::Cell cell = { tile, distance == bomb.getRange() ? direction.end : direction.middle };
-
-			// Bushes are destroyed and stop the fire
+			// Bushes are destroyed and stop the fire, without drawing fire over them
 			if(type == TileType::DESTRUCTIBLE)
 			{
 				map->destroyTile(tile.x, tile.y);
 				spawnItem(tile);
-				cell.piece = direction.end;
-				cells.push_back(cell);
 				break;
 			}
 
-			// Other bombs explode too (chain reaction) and stop the fire
+			// Other bombs explode too (chain reaction) and stop the fire.
+			// Their own explosion draws the center on that tile
 			bool bombFound = false;
 			for(auto &other : bombs)
 				if(other->getTilePos() == tile)
@@ -491,12 +489,10 @@ void Scene::explode(const Bomb &bomb)
 					bombFound = true;
 				}
 			if(bombFound)
-			{
-				cell.piece = direction.end;
-				cells.push_back(cell);
 				break;
-			}
 
+			// The end piece is only drawn when the fire reaches its full range
+			Explosion::Cell cell = { tile, distance == bomb.getRange() ? direction.end : direction.middle };
 			cells.push_back(cell);
 		}
 	}

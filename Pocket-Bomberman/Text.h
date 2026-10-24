@@ -8,11 +8,11 @@
 #include "Sprite.h"
 
 // Text draws strings with a small 5x7 pixel font that is built in code
-// (no image needed). Lowercase letters are drawn as uppercase.
+// Lowercase letters are drawn as uppercase.
 class Text
 {
 public:
-    // cellSize is the on-screen size of each character cell (8 = original size)
+    // cellSize is the pixel size of each character cell (8 = original size)
     void init(ShaderProgram &program, int cellSize);
     void free();
 

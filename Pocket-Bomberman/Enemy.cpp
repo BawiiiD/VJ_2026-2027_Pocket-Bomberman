@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "Enemy.h"
 #include "Gameplay.h"
@@ -16,9 +17,9 @@ namespace
     constexpr int DYING_MS = 700;
 
     // Rows of images/sprites.png with each enemy
-    constexpr int WALKER_ROW = 5;
+    constexpr int CHASER_ROW = 5;
     constexpr int HOPPER_ROW = 6;
-    constexpr int CHASER_ROW = 7;
+    constexpr int WALKER_ROW = 7;
 
     // Walker
     constexpr float WALKER_SPEED = 30.f;
@@ -37,7 +38,6 @@ namespace
     enum EnemyAnimation
     {
         MOVE,
-        AIR,
         DEATH,
 
         ANIMATION_COUNT
@@ -58,7 +58,9 @@ std::unique_ptr<Enemy> Enemy::create(Type type)
     }
 }
 
-Enemy::Enemy(int atlasRow)
+Enemy::Enemy(int atlasRow,
+             std::vector<int> moveColumns,
+             std::vector<int> deathColumns)
     : map(nullptr),
       position(0.f),
       velocity(0.f),
@@ -66,6 +68,8 @@ Enemy::Enemy(int atlasRow)
       onGround(false),
       hitWall(false),
       atlasRow(atlasRow),
+      moveColumns(std::move(moveColumns)),
+      deathColumns(std::move(deathColumns)),
       state(ALIVE),
       dyingMs(0)
 {
@@ -93,17 +97,15 @@ void Enemy::init(Texture &atlas,
 
     sprite->setNumberAnimations(ANIMATION_COUNT);
 
+    // The move animation is also used in the air (the hopper opens and closes its mouth)
     sprite->setAnimationSpeed(MOVE, 6);
-    for (int column : { 0, 1, 2, 1 })
+    for (int column : moveColumns)
         sprite->addKeyframe(MOVE, atlasCell(column, atlasRow));
-
-    sprite->setAnimationSpeed(AIR, 1);
-    sprite->addKeyframe(AIR, atlasCell(4, atlasRow));
 
     sprite->setAnimationSpeed(DEATH, 6);
     sprite->setAnimationLoop(DEATH, false);
-    sprite->addKeyframe(DEATH, atlasCell(5, atlasRow));
-    sprite->addKeyframe(DEATH, atlasCell(6, atlasRow));
+    for (int column : deathColumns)
+        sprite->addKeyframe(DEATH, atlasCell(column, atlasRow));
 
     sprite->changeAnimation(MOVE);
     sprite->setPosition(glm::round(position - HITBOX_OFFSET));
@@ -141,10 +143,6 @@ void Enemy::update(int deltaTime, const glm::vec2 &playerCenter)
     {
         onGround = false;
     }
-
-    const int wantedAnimation = onGround ? MOVE : AIR;
-    if (sprite->animation() != wantedAnimation)
-        sprite->changeAnimation(wantedAnimation);
 
     // Enemy frames look to the left
     sprite->setFlipX(direction > 0);
@@ -203,7 +201,7 @@ bool Enemy::groundAhead(int dir) const
 // Walker: patrols its platform
 
 Walker::Walker()
-    : Enemy(WALKER_ROW)
+    : Enemy(WALKER_ROW, { 0, 1 }, { 2, 3, 4 })
 {
 }
 
@@ -219,7 +217,7 @@ void Walker::think(float dt, const glm::vec2 &playerCenter)
 // Hopper: waits on the floor and jumps towards the player
 
 Hopper::Hopper()
-    : Enemy(HOPPER_ROW),
+    : Enemy(HOPPER_ROW, { 0, 1 }, { 2, 3, 4 }),
       waitMs(HOPPER_WAIT_MS)
 {
 }
@@ -253,7 +251,7 @@ void Hopper::think(float dt, const glm::vec2 &playerCenter)
 // Chaser: runs after the player when he is at the same height and close enough
 
 Chaser::Chaser()
-    : Enemy(CHASER_ROW)
+    : Enemy(CHASER_ROW, { 0, 1, 2, 1 }, { 3, 4, 5 })
 {
 }
 
