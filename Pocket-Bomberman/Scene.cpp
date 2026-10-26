@@ -8,6 +8,7 @@
 #include "Scene.h"
 #include "Game.h"
 #include "Gameplay.h"
+#include "Audio.h"
 
 
 namespace
@@ -19,12 +20,16 @@ namespace
 	constexpr int HUD_HEIGHT = 16;
 	constexpr int WORLD_VIEW_HEIGHT = VIEW_HEIGHT - HUD_HEIGHT;
 
-	// Time that messages stay on screen
+	// Time that messages stay on screen (long enough for their jingles)
 	constexpr int STAGE_TITLE_MS = 1500;
-	constexpr int LEVEL_CLEAR_MS = 2500;
+	constexpr int LEVEL_CLEAR_MS = 4200;
 	constexpr int AFTER_DEATH_MS = 1200;
-	constexpr int GAME_OVER_MS = 3500;
-	constexpr int VICTORY_MS = 6000;
+	constexpr int TIME_UP_MS = 4200;
+	constexpr int GAME_OVER_MS = 9200;
+	constexpr int VICTORY_MS = 11200;
+
+	// Below this time the clock blinks and a warning sounds
+	constexpr int HURRY_UP_MS = 30000;
 
 	// Chance that a destroyed bush leaves an item (in %) and weight of each item
 	constexpr int ITEM_CHANCE = 40;
@@ -100,6 +105,15 @@ namespace
 		return name.str();
 	}
 
+	Music levelMusic(int level, bool hasBoss)
+	{
+		if(hasBoss)
+			return Music::BOSS;
+
+		const Music stages[] = { Music::STAGE1, Music::STAGE2, Music::STAGE3, Music::STAGE4 };
+		return stages[glm::clamp(level, 1, 4) - 1];
+	}
+
 	string formatTime(int ms)
 	{
 		int seconds = (ms + 999) / 1000;
@@ -128,6 +142,8 @@ Scene::Scene()
 	timeLeftMs = 0;
 	timeUp = false;
 	finished = true;
+	doorWasOpen = false;
+	timeWarned = false;
 	camera = glm::vec2(0.f);
 	random.seed(std::random_device()());
 }
@@ -225,9 +241,14 @@ bool Scene::loadLevel(int level)
 
 	timeLeftMs = info.time * 1000;
 	timeUp = false;
+	timeWarned = timeLeftMs <= HURRY_UP_MS;
+	doorWasOpen = hasDoor && doorOpen();
 	levelMs = 0;
 	changeState(State::PLAYING);
 	updateCamera();
+
+	// After dying the music was stopped, so it starts again from the beginning
+	Audio::instance().playMusic(levelMusic(level, info.hasBoss));
 
 	return true;
 }
@@ -340,9 +361,19 @@ void Scene::update(int deltaTime)
 			timeLeftMs = 0;
 			timeUp = true;
 			player->kill();
+			Audio::instance().playMusic(Music::TIME_UP, false);
+		}
+		if(!timeWarned && timeLeftMs <= HURRY_UP_MS)
+		{
+			timeWarned = true;
+			Audio::instance().playSound(Sound::TIME_WARNING);
 		}
 		if(player->isDying())
+		{
+			if(!timeUp)
+				Audio::instance().stopMusic();
 			changeState(State::PLAYER_DEAD);
+		}
 		break;
 
 	case State::LEVEL_CLEAR:
@@ -350,18 +381,24 @@ void Scene::update(int deltaTime)
 		{
 			levelStartStats = player->getStats();
 			if(currentLevel == NUM_LEVELS)
+			{
 				changeState(State::VICTORY);
+				Audio::instance().playMusic(Music::VICTORY, false);
+			}
 			else
 				loadLevel(currentLevel + 1);
 		}
 		break;
 
 	case State::PLAYER_DEAD:
-		if(!player->isAlive() && stateMs >= AFTER_DEATH_MS)
+		if(!player->isAlive() && stateMs >= (timeUp ? TIME_UP_MS : AFTER_DEATH_MS))
 		{
 			--lives;
 			if(lives <= 0)
+			{
 				changeState(State::GAME_OVER);
+				Audio::instance().playMusic(Music::GAME_OVER, false);
+			}
 			else
 				loadLevel(currentLevel);
 		}
@@ -398,6 +435,7 @@ void Scene::placeBomb()
 			return;
 
 	bombs.emplace_back(new Bomb(tile, player->getStats().fireRange, map->getTileSize(), *atlas, *texProgram));
+	Audio::instance().playSound(Sound::BOMB_PLACE);
 }
 
 void Scene::updateBombs(int deltaTime)
@@ -476,6 +514,7 @@ void Scene::explode(const Bomb &bomb)
 			{
 				map->destroyTile(tile.x, tile.y);
 				spawnItem(tile);
+				Audio::instance().playSound(Sound::BUSH_BREAK);
 				break;
 			}
 
@@ -498,6 +537,7 @@ void Scene::explode(const Bomb &bomb)
 	}
 
 	explosions.emplace_back(new Explosion(cells, map->getTileSize(), explosionTexture, *texProgram));
+	Audio::instance().playSound(Sound::EXPLOSION);
 }
 
 void Scene::spawnItem(const glm::ivec2 &tile)
@@ -558,6 +598,7 @@ void Scene::updateCollisions()
 		if(overlaps(items[i]->bounds(), playerBox))
 		{
 			player->applyItem(items[i]->getType());
+			Audio::instance().playSound(Sound::ITEM_GET);
 			items.erase(items.begin() + i);
 		}
 		else
@@ -569,6 +610,7 @@ void Scene::updateCollisions()
 	{
 		player->celebrate();
 		changeState(State::LEVEL_CLEAR);
+		Audio::instance().playMusic(Music::CLEAR, false);
 	}
 }
 
@@ -584,6 +626,12 @@ void Scene::updateDoor()
 
 	if(doorSprite)
 		doorSprite->setPosition(glm::vec2(doorTile * map->getTileSize()));
+
+	// Sound when the door opens (all the enemies defeated)
+	bool open = hasDoor && doorOpen();
+	if(open && !doorWasOpen)
+		Audio::instance().playSound(Sound::DOOR_OPEN);
+	doorWasOpen = open;
 }
 
 void Scene::killAllEnemies()
@@ -745,7 +793,7 @@ void Scene::renderHUD()
 
 	// Remaining time (red when it is almost over)
 	drawSmallIcon(ICON_TIME, 4.f);
-	glm::vec4 timeColor = timeLeftMs < 30000 && (timeLeftMs / 250) % 2 == 0 ? glm::vec4(0.8f, 0.f, 0.f, 1.f) : dark;
+	glm::vec4 timeColor = timeLeftMs < HURRY_UP_MS && (timeLeftMs / 250) % 2 == 0 ? glm::vec4(0.8f, 0.f, 0.f, 1.f) : dark;
 	text->render(formatTime(timeLeftMs), glm::vec2(14.f, textY), timeColor);
 
 	// Lives

@@ -4,6 +4,7 @@
 
 #include "Enemy.h"
 #include "Gameplay.h"
+#include "Audio.h"
 
 namespace
 {
@@ -169,6 +170,7 @@ void Enemy::kill()
     state = DYING;
     dyingMs = DYING_MS;
     sprite->changeAnimation(DEATH);
+    Audio::instance().playSound(Sound::ENEMY_DEATH);
 }
 
 bool Enemy::isDying() const

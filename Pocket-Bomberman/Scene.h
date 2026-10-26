@@ -110,6 +110,10 @@ private:
 	bool timeUp;
 	bool finished;
 
+	// To play the door and time sounds only once
+	bool doorWasOpen;
+	bool timeWarned;
+
 	glm::vec2 camera;
 	std::mt19937 random;
 

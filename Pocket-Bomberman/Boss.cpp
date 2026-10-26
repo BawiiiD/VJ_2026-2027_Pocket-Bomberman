@@ -3,6 +3,7 @@
 
 #include "Boss.h"
 #include "Gameplay.h"
+#include "Audio.h"
 
 namespace
 {
@@ -232,6 +233,7 @@ void Boss::attack(const glm::vec2 &playerCenter,
 {
     sprite->changeAnimation(ATTACK);
     poseMs = ATTACK_POSE_MS;
+    Audio::instance().playSound(Sound::BOSS_ATTACK);
 
     const glm::vec2 mouth = position + glm::vec2(BOSS_FRAME_SIZE / 2.f - 5.f, 6.f);
 
@@ -285,6 +287,7 @@ bool Boss::hit()
 
     --health;
     invulnerableMs = INVULNERABLE_MS;
+    Audio::instance().playSound(Sound::BOSS_HIT);
 
     if (health <= 0)
         kill();

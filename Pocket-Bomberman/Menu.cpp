@@ -7,6 +7,7 @@
 #include "Menu.h"
 #include "Game.h"
 #include "Gameplay.h"
+#include "Audio.h"
 
 namespace
 {
@@ -46,6 +47,7 @@ void Menu::reset()
 {
     screen = Screen::MAIN;
     selected = 0;
+    Audio::instance().playMusic(Music::TITLE);
 }
 
 void Menu::update(int deltaTime)
@@ -61,7 +63,11 @@ Menu::Action Menu::keyPressed(int key)
     {
         // Any of these keys go back to the main screen
         if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_ENTER || key == GLFW_KEY_SPACE)
+        {
             screen = Screen::MAIN;
+            Audio::instance().playSound(Sound::MENU_SELECT);
+            Audio::instance().playMusic(Music::TITLE);
+        }
         return Action::NONE;
     }
 
@@ -69,23 +75,28 @@ Menu::Action Menu::keyPressed(int key)
     {
     case GLFW_KEY_UP:
         selected = (selected + OPTION_COUNT - 1) % OPTION_COUNT;
+        Audio::instance().playSound(Sound::MENU_MOVE);
         break;
     case GLFW_KEY_DOWN:
         selected = (selected + 1) % OPTION_COUNT;
+        Audio::instance().playSound(Sound::MENU_MOVE);
         break;
     case GLFW_KEY_ESCAPE:
         return Action::QUIT;
     case GLFW_KEY_ENTER:
     case GLFW_KEY_SPACE:
+        Audio::instance().playSound(Sound::MENU_SELECT);
         switch (selected)
         {
         case 0:
             return Action::PLAY;
         case 1:
             screen = Screen::INSTRUCTIONS;
+            Audio::instance().playMusic(Music::MAP);
             break;
         case 2:
             screen = Screen::CREDITS;
+            Audio::instance().playMusic(Music::MAP);
             break;
         default:
             return Action::QUIT;

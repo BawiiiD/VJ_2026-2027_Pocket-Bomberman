@@ -8,6 +8,7 @@
 #include "Player.h"
 #include "Game.h"
 #include "Gameplay.h"
+#include "Audio.h"
 
 namespace
 {
@@ -24,6 +25,9 @@ namespace
     constexpr float MAX_FALL_SPEED = 280.f;
     constexpr float PLAYER_SPEED = 64.f;
     constexpr float SPEED_PER_LEVEL = 12.f;
+
+    // Landing faster than this plays the landing sound
+    constexpr float LAND_SOUND_SPEED = 100.f;
 
     // Jumping is still allowed a few ms after walking off a ledge
     constexpr int COYOTE_MS = 80;
@@ -164,6 +168,7 @@ void Player::update(int deltaTime)
             velocityY = -JUMP_SPEED;
             onGround = false;
             coyoteMs = 0;
+            Audio::instance().playSound(Sound::JUMP);
         }
 
         // Releasing the key early makes a shorter jump
@@ -182,6 +187,8 @@ void Player::update(int deltaTime)
     {
         // Landed on the floor or hit the ceiling
         onGround = velocityY > 0.f;
+        if (onGround && !wasOnGround && velocityY > LAND_SOUND_SPEED)
+            Audio::instance().playSound(Sound::LAND);
         velocityY = 0.f;
     }
     else
@@ -281,11 +288,13 @@ bool Player::hurt(bool byBomb)
     {
         stats.heart = false;
         invulnerableMs = INVULNERABLE_MS;
+        Audio::instance().playSound(Sound::HEART_LOST);
         return false;
     }
 
     state = DYING;
     sprite->changeAnimation(byBomb ? DEATH_BY_BOMB : DEATH_BY_MONSTER);
+    Audio::instance().playSound(Sound::PLAYER_DEATH);
     return true;
 }
 

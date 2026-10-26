@@ -1,5 +1,6 @@
 #include "Bomb.h"
 #include "Gameplay.h"
+#include "Audio.h"
 
 namespace
 {
@@ -27,6 +28,7 @@ Bomb::Bomb(glm::ivec2 tile,
     : tile(tile),
       range(range),
       remainingMs(FUSE_MS),
+      tickMs(1000 * BOMB_FRAMES / BOMB_FPS),
       tileSize(tileSize),
       triggered(false),
       solid(false)
@@ -57,7 +59,19 @@ void Bomb::update(int deltaTime)
     remainingMs -= deltaTime;
 
     if (remainingMs <= HURRY_MS && sprite->animation() != HURRY)
+    {
         sprite->changeAnimation(HURRY);
+        tickMs = 0;
+    }
+
+    // One tick each time the fuse animation loops, so it speeds up with it
+    tickMs -= deltaTime;
+    if (tickMs <= 0 && remainingMs > 0)
+    {
+        Audio::instance().playSound(Sound::BOMB_TICK);
+        const int fps = sprite->animation() == HURRY ? HURRY_FPS : BOMB_FPS;
+        tickMs += 1000 * BOMB_FRAMES / fps;
+    }
 
     if (remainingMs <= 0)
         triggered = true;

@@ -33,6 +33,8 @@ private:
     glm::ivec2 tile;
     int range;
     int remainingMs;
+    // Time until the next tick sound
+    int tickMs;
     int tileSize;
     bool triggered;
     bool solid;

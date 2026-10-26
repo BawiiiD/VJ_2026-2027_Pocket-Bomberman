@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include "Game.h"
+#include "Audio.h"
 
 
 Game::Game()
@@ -30,9 +31,13 @@ void Game::init()
 	text.init(texProgram, 8);
 	bigText.init(texProgram, 16);
 
+	Audio::instance().init();
+
 	menu.init(texProgram, atlas, text, bigText);
 	scene.init(texProgram, atlas, text, bigText);
 
+	// Starts the menu music
+	menu.reset();
 	state = GameState::MENU;
 }
 
@@ -151,6 +156,7 @@ void Game::shutdown()
 	text.free();
 	bigText.free();
 	texProgram.free();
+	Audio::instance().shutdown();
 }
 
 void Game::initShaders()
