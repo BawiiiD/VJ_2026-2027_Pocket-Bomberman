@@ -108,7 +108,7 @@ void Player::init(Texture &atlas, ShaderProgram &shaderProgram)
     addFrames(CELEBRATE, { 6, 7 }, 4, true);
 
     sprite->changeAnimation(STAND);
-    sprite->setFlipX(false);
+    sprite->setFlipX(facingRight);
 
     updateSpritePosition();
 }
@@ -245,7 +245,10 @@ void Player::setTile(const glm::ivec2 &tile)
     state = NORMAL;
 
     if (sprite)
+    {
         sprite->changeAnimation(STAND);
+        sprite->setFlipX(facingRight);
+    }
 
     updateSpritePosition();
 }
@@ -372,8 +375,8 @@ void Player::updateAnimation(bool walking)
     if (sprite->animation() != wantedAnimation)
         sprite->changeAnimation(wantedAnimation);
 
-    // Update the sprite's horizontal flip based on the player's facing direction
-    sprite->setFlipX(!facingRight);
+    // The atlas frames face left, so flip them when the player faces right.
+    sprite->setFlipX(facingRight);
 }
 
 void Player::updateSpritePosition()

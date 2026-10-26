@@ -94,12 +94,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\OpenGL_VS2015\libs\Simple OpenGL Image Library\src;..\..\OpenGL_VS2015\libs\glew-1.13.0\include;..\..\OpenGL_VS2015\libs\glm;..\..\OpenGL_VS2015\libs\glfw-3.3.8\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\libs\Simple OpenGL Image Library\src;$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\include;$(MSBuildProjectDirectory)\..\libs\glm;$(MSBuildProjectDirectory)\..\libs\glfw-3.3.8\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\OpenGL_VS2015\libs\Simple OpenGL Image Library\projects\VC9\Debug;..\..\OpenGL_VS2015\libs\glew-1.13.0\lib\Release\Win32;..\..\OpenGL_VS2015\libs\glfw-3.3.8\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\..\libs\Simple OpenGL Image Library\projects\VC9\Debug;$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\lib\Release\Win32;$(MSBuildProjectDirectory)\..\libs\glfw-3.3.8\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>SOIL.lib;glew32.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -112,14 +112,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\OpenGL_VS2015\libs\Simple OpenGL Image Library\src;..\..\OpenGL_VS2015\libs\glfw-3.3.8\include;..\..\OpenGL_VS2015\libs\glew-1.13.0\include;..\..\OpenGL_VS2015\libs\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\libs\Simple OpenGL Image Library\src;$(MSBuildProjectDirectory)\..\libs\glfw-3.3.8\include;$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\include;$(MSBuildProjectDirectory)\..\libs\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\..\OpenGL_VS2015\libs\Simple OpenGL Image Library\projects\VC9\Debug;..\..\OpenGL_VS2015\libs\glfw-3.3.8\lib-vc2015;..\..\OpenGL_VS2015\libs\glew-1.13.0\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\..\libs\Simple OpenGL Image Library\projects\VC9\Debug;$(MSBuildProjectDirectory)\..\libs\glfw-3.3.8\lib-vc2015;$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>SOIL.lib;glew32.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

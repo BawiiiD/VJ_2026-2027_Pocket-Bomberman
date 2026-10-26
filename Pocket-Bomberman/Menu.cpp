@@ -33,6 +33,8 @@ void Menu::init(ShaderProgram &shaderProgram, Texture &atlas, Text &smallText, T
     for (int column : { 0, 1, 0, 2 })
         bomberman->addKeyframe(0, atlasCell(column, 0));
     bomberman->changeAnimation(0);
+    // The atlas frames face left; the menu character walks to the right.
+    bomberman->setFlipX(true);
 
     icon.reset(Sprite::createSprite(glm::vec2(16.f), atlasCellSize(), &atlas, program));
 }
