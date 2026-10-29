@@ -20,6 +20,12 @@ namespace
 	constexpr int GATE_BOTTOM_TILE = 76;
 	constexpr int GATE_STEP_MS = 100;
 
+	// Emitter blocks (left and right) and the two frames of the ray between them.
+	// The frames of the emitters are the next pairs of tiles of the same row
+	constexpr int LEFT_EMITTER_TILE = 105;
+	constexpr int RIGHT_EMITTER_TILE = 106;
+	const int RAY_TILES[] = { 77, 78 };
+
 	// The blue fence tiles are solid; only the background is passable.
 	const int PASSABLE_TILES[] = { BACKGROUND_TILE };
 
@@ -242,6 +248,40 @@ int TileMap::getDoorTileId() const
 	return DOOR_TILE;
 }
 
+vector<RayInfo> TileMap::findRays() const
+{
+	vector<RayInfo> rays;
+
+	for(int j = 0; j < mapSize.y; j++)
+		for(int i = 0; i < mapSize.x; i++)
+		{
+			if(map[j * mapSize.x + i] != LEFT_EMITTER_TILE)
+				continue;
+
+			// The ray goes right through the empty tiles until the other emitter
+			int length = 0;
+			while(getTileType(i + 1 + length, j) == TileType::EMPTY)
+				length++;
+			if(length > 0 && inside(i + 1 + length, j) && map[j * mapSize.x + i + 1 + length] == RIGHT_EMITTER_TILE)
+			{
+				RayInfo ray = { glm::ivec2(i + 1, j), length };
+				rays.push_back(ray);
+			}
+		}
+
+	return rays;
+}
+
+int TileMap::getRayTileId(int frame) const
+{
+	return RAY_TILES[frame % 2];
+}
+
+int TileMap::getEmitterTileId(bool left, int frame) const
+{
+	return (left ? LEFT_EMITTER_TILE : RIGHT_EMITTER_TILE) + 2 * frame;
+}
+
 void TileMap::prepareArrays()
 {
 	vector<float> vertices;
@@ -375,7 +415,8 @@ bool TileMap::destroyTile(int x, int y)
 			if(tile == GATE_BOTTOM_TILE)
 				break;
 		}
-		if(bottom == y)
+		// No fence, or already retracted (only the bottom cap is left under the control)
+		if(bottom <= y + 1)
 			return false;
 		retractingGates.push_back({ x, y, bottom, 0 });
 		return true;
@@ -393,7 +434,8 @@ void TileMap::update(int deltaTime)
 	for(auto it = retractingGates.begin(); it != retractingGates.end();)
 	{
 		it->elapsedMs += deltaTime;
-		while(it->elapsedMs >= GATE_STEP_MS && it->bottomY > it->controlY)
+		// The fence stops when the bottom cap is right below the control
+		while(it->elapsedMs >= GATE_STEP_MS && it->bottomY > it->controlY + 1)
 		{
 			it->elapsedMs -= GATE_STEP_MS;
 			const int index = it->bottomY * mapSize.x + it->x;
@@ -401,11 +443,10 @@ void TileMap::update(int deltaTime)
 			flipped[index] = false;
 			--it->bottomY;
 			// Move the bottom cap upwards along with the retracting fence.
-			if(it->bottomY > it->controlY)
-				map[it->bottomY * mapSize.x + it->x] = GATE_BOTTOM_TILE;
+			map[it->bottomY * mapSize.x + it->x] = GATE_BOTTOM_TILE;
 			changed = true;
 		}
-		if(it->bottomY == it->controlY)
+		if(it->bottomY == it->controlY + 1)
 			it = retractingGates.erase(it);
 		else
 			++it;

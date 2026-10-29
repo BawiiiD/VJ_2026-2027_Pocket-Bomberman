@@ -61,6 +61,8 @@ private:
 	void updateCollisions();
 	void updateCamera();
 	void updateDoor();
+	bool rayOn() const;
+	bool insideRay(const glm::ivec2 &tile) const;
 	void killAllEnemies();
 	int enemiesLeft() const;
 	bool doorOpen() const;
@@ -91,6 +93,10 @@ private:
 	// Boss level: the door appears here when the boss is defeated
 	glm::ivec2 bossDoorTile;
 	std::unique_ptr<Sprite> doorSprite;
+
+	// Rays between emitter blocks, all of them shoot at the same time
+	std::vector<RayInfo> rays;
+	std::unique_ptr<Sprite> raySprite;
 
 	// HUD icons
 	std::unique_ptr<Sprite> smallIcon;

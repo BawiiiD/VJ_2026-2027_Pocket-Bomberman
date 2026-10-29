@@ -24,6 +24,13 @@ enum class TileType
 	DOOR            // Exit door, entities move through it
 };
 
+// Ray between two emitter blocks: the empty tiles from start to start + (length - 1, 0)
+struct RayInfo
+{
+	glm::ivec2 start;
+	int length;
+};
+
 
 class TileMap
 {
@@ -66,6 +73,12 @@ public:
 	glm::vec2 getTileTexCoord(int tileId) const;
 	glm::vec2 getTileTexSize() const;
 	int getDoorTileId() const;
+
+	// Rays shot between each pair of emitter blocks of the same row
+	vector<RayInfo> findRays() const;
+	int getRayTileId(int frame) const;
+	// Emitter frames: 0 waiting, 1 to 3 charging, 4 shooting
+	int getEmitterTileId(bool left, int frame) const;
 
 private:
 	bool loadLevel(const string &levelFile);
