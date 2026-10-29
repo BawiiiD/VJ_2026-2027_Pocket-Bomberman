@@ -93,6 +93,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
+      <!-- Keep compiler debug symbols in each object instead of a shared vc145.pdb. -->
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\libs\Simple OpenGL Image Library\src;$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\include;$(MSBuildProjectDirectory)\..\libs\glm;$(MSBuildProjectDirectory)\..\libs\glfw-3.3.8\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>

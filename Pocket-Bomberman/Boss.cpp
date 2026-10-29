@@ -28,6 +28,8 @@ namespace
     const glm::vec2 BOSS_HITBOX_OFFSET(4.f, 4.f);
 
     constexpr int MAX_HEALTH = 5;
+    constexpr float PATROL_SPEED = 24.f;
+    constexpr float BERSERK_PATROL_SPEED = 36.f;
     constexpr int ATTACK_MS = 2400;
     constexpr int BERSERK_ATTACK_MS = 1600;   // Low health
     // How long the boss remains visually locked in its attack animation 
@@ -87,7 +89,7 @@ void Projectile::update(int deltaTime, const TileMap &map)
 
     sprite->update(deltaTime);
 
-    // Prevent tunneling through walls
+    // Keep movement stable on long frames.
     const float dt = std::min(deltaTime / 1000.f, 0.05f);
     lifeMs -= deltaTime;
 
@@ -96,8 +98,6 @@ void Projectile::update(int deltaTime, const TileMap &map)
         velocity.y += SEED_GRAVITY * dt;
         position += velocity * dt;
 
-        if (map.collides(position, PROJECTILE_SIZE))
-            alive = false;
     }
     else
     {
@@ -106,7 +106,7 @@ void Projectile::update(int deltaTime, const TileMap &map)
     }
 
     const glm::vec2 mapSize = glm::vec2(map.getPixelSize());
-    // The projectile is alive until it hits a wall or goes out of bounds
+    // Terrain does not destroy projectiles; lifetime and arena bounds still apply.
     // If the projectile goes out of bounds on the left or top,
     // we need to make sure it is still considered alive until it has fully left the screen
     if (lifeMs <= 0 ||
@@ -148,6 +148,7 @@ Boss::Boss()
       map(nullptr),
       position(0.f),
       state(FIGHTING),
+      moveDirection(-1),
       health(MAX_HEALTH),
       attackTimerMs(ATTACK_MS),
       attackCount(0),
@@ -217,6 +218,23 @@ void Boss::update(int deltaTime,
             sprite->changeAnimation(IDLE);
     }
 
+    if (poseMs <= 0)
+    {
+        const float dt = std::min(deltaTime / 1000.f, 0.05f);
+        const float speed = health <= 2 ? BERSERK_PATROL_SPEED : PATROL_SPEED;
+        glm::vec2 body = position + BOSS_HITBOX_OFFSET;
+        const float step = moveDirection * speed * dt;
+        const glm::vec2 foot(body.x + step + (moveDirection > 0 ? BOSS_HITBOX_SIZE.x : -1.f),
+                             body.y + BOSS_HITBOX_SIZE.y + 1.f);
+        const glm::ivec2 floorTile = map->toTile(foot);
+        if (!map->isSolid(floorTile.x, floorTile.y))
+            moveDirection = -moveDirection;
+        else if (moveAndCollide(*map, body, BOSS_HITBOX_SIZE, step, 0))
+            moveDirection = -moveDirection;
+        position = body - BOSS_HITBOX_OFFSET;
+        sprite->setPosition(glm::round(position));
+    }
+
     attackTimerMs -= deltaTime;
     if (attackTimerMs <= 0)
     {
@@ -247,15 +265,15 @@ void Boss::attack(const glm::vec2 &playerCenter,
     }
     else
     {
-        // Three seeds that fall around the player
+        // Three seeds arc towards the player, passing through walls and platforms.
         const float flightTimes[] = { 0.8f, 1.0f, 1.2f };
         const float offsets[] = { -20.f, 0.f, 20.f };
 
         for (int i = 0; i < 3; ++i)
         {
-            const float t = flightTimes[i];
-            const glm::vec2 target = playerCenter + glm::vec2(offsets[i], 0.f);
+            const glm::vec2 target = playerCenter - PROJECTILE_SIZE / 2.f + glm::vec2(offsets[i], 0.f);
             const glm::vec2 delta = target - mouth;
+            const float t = flightTimes[i];
             const glm::vec2 velocity(delta.x / t, delta.y / t - 0.5f * SEED_GRAVITY * t);
 
             projectiles.emplace_back(new Projectile(

@@ -1,2 +1,7 @@
-﻿  TileMap.cpp
-  Pocket-Bomberman.vcxproj -> C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Debug\Pocket-Bomberman.exe
+﻿  Boss.cpp
+  Game.cpp
+  main.cpp
+  Menu.cpp
+  Player.cpp
+  正在生成代码...
+C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Pocket-Bomberman\Player.cpp(1,1): error C1090: PDB API 调用失败，错误代码“3”: C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Pocket-Bomberman\Debug\vc145.pdb

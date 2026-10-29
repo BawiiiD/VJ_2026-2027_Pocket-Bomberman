@@ -8,8 +8,7 @@
 #include "Sprite.h"
 #include "TileMap.h"
 
-// Boss attacks: seeds fly in an arc and break against the walls,
-// birds fly straight through everything
+// Boss attacks pass through terrain: seeds follow an arc and birds fly across.
 class Projectile
 {
 public:
@@ -39,7 +38,7 @@ private:
     glm::vec2 velocity;
     // Time left before the projectile disappears
     int lifeMs;
-    // The projectile is alive until it hits a wall or goes out of bounds
+    // Projectiles expire, leave the arena, or are destroyed by combat collisions.
     bool alive;
     std::unique_ptr<Sprite> sprite;
 };
@@ -88,6 +87,7 @@ private:
 
     glm::vec2 position;
     State state;
+    int moveDirection;
     int health;
     int attackTimerMs;
     int attackCount;
