@@ -19,6 +19,9 @@ namespace
 	// Height of the bar with the game information, at the bottom of the screen
 	constexpr int HUD_HEIGHT = 16;
 	constexpr int WORLD_VIEW_HEIGHT = VIEW_HEIGHT - HUD_HEIGHT;
+	constexpr float CAMERA_ZOOM = 1.5f;
+	constexpr float CAMERA_WIDTH = VIEW_WIDTH / CAMERA_ZOOM;
+	constexpr float CAMERA_HEIGHT = WORLD_VIEW_HEIGHT / CAMERA_ZOOM;
 
 	// Time that messages stay on screen (long enough for their jingles)
 	constexpr int STAGE_TITLE_MS = 1500;
@@ -671,7 +674,7 @@ bool Scene::doorOpen() const
 
 void Scene::updateCamera()
 {
-	glm::vec2 view(VIEW_WIDTH, WORLD_VIEW_HEIGHT);
+	glm::vec2 view(CAMERA_WIDTH, CAMERA_HEIGHT);
 	glm::vec2 mapSize(map->getPixelSize());
 	glm::vec2 target = player->getCenter() - view / 2.f;
 
@@ -697,7 +700,7 @@ void Scene::render()
 
 	// World, drawn above the HUD bar
 	glViewport(0, HUD_HEIGHT * PIXEL_SCALE, SCREEN_WIDTH, WORLD_VIEW_HEIGHT * PIXEL_SCALE);
-	projection = glm::ortho(camera.x, camera.x + VIEW_WIDTH, camera.y + WORLD_VIEW_HEIGHT, camera.y);
+	projection = glm::ortho(camera.x, camera.x + CAMERA_WIDTH, camera.y + CAMERA_HEIGHT, camera.y);
 
 	texProgram->use();
 	texProgram->setUniformMatrix4f("projection", projection);

@@ -1,7 +1,7 @@
-﻿  Boss.cpp
-  Game.cpp
-  main.cpp
-  Menu.cpp
-  Player.cpp
-  正在生成代码...
-C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Pocket-Bomberman\Player.cpp(1,1): error C1090: PDB API 调用失败，错误代码“3”: C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Pocket-Bomberman\Debug\vc145.pdb
+﻿  Scene.cpp
+LINK : warning LNK4098: 默认库“MSVCRT”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
+SOIL.lib(image_DXT.obj) : warning LNK4099: 未找到 PDB“vc100.pdb”(使用“SOIL.lib(image_DXT.obj)”或在“C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Debug\vc100.pdb”中寻找)；正在链接对象，如同没有调试信息一样
+SOIL.lib(image_helper.obj) : warning LNK4099: 未找到 PDB“vc100.pdb”(使用“SOIL.lib(image_helper.obj)”或在“C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Debug\vc100.pdb”中寻找)；正在链接对象，如同没有调试信息一样
+SOIL.lib(SOIL.obj) : warning LNK4099: 未找到 PDB“vc100.pdb”(使用“SOIL.lib(SOIL.obj)”或在“C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Debug\vc100.pdb”中寻找)；正在链接对象，如同没有调试信息一样
+SOIL.lib(stb_image_aug.obj) : warning LNK4099: 未找到 PDB“vc100.pdb”(使用“SOIL.lib(stb_image_aug.obj)”或在“C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Debug\vc100.pdb”中寻找)；正在链接对象，如同没有调试信息一样
+  Pocket-Bomberman.vcxproj -> C:\Users\DC\Desktop\Bawiii\VJ_2026-2027_Pocket-Bomberman\Debug\Pocket-Bomberman.exe
