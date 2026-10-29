@@ -104,6 +104,10 @@
       <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\..\libs\Simple OpenGL Image Library\projects\VC9\Debug;$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\lib\Release\Win32;$(MSBuildProjectDirectory)\..\libs\glfw-3.3.8\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>SOIL.lib;glew32.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <!-- The game needs glew32.dll next to the exe -->
+      <Command>xcopy /y /d "$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\bin\Release\Win32\glew32.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -124,6 +128,10 @@
       <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\..\libs\Simple OpenGL Image Library\projects\VC9\Debug;$(MSBuildProjectDirectory)\..\libs\glfw-3.3.8\lib-vc2015;$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>SOIL.lib;glew32.lib;glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <!-- The game needs glew32.dll next to the exe -->
+      <Command>xcopy /y /d "$(MSBuildProjectDirectory)\..\libs\glew-1.13.0\bin\Release\Win32\glew32.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
