@@ -34,7 +34,6 @@ namespace
     constexpr float CHASER_PATROL_SPEED = 22.f;
     constexpr float CHASER_RUN_SPEED = 58.f;
     constexpr float CHASER_SIGHT_X = 112.f;
-    constexpr float CHASER_SIGHT_Y = 20.f;
 
     enum EnemyAnimation
     {
@@ -250,7 +249,7 @@ void Hopper::think(float dt, const glm::vec2 &playerCenter)
 }
 
 
-// Chaser: runs after the player when he is at the same height and close enough
+// Chaser: runs after a nearby player ahead on the same tile level
 
 Chaser::Chaser()
     : Enemy(CHASER_ROW, { 0, 1, 2, 1 }, { 3, 4, 5 })
@@ -262,9 +261,15 @@ void Chaser::think(float dt, const glm::vec2 &playerCenter)
     const glm::vec2 center(getBounds().x + getBounds().z / 2.f,
                            getBounds().y + getBounds().w / 2.f);
 
+    const float distanceX = playerCenter.x - center.x;
+    // Player and enemy hitboxes are both 14 pixels tall. Sample just inside
+    // their feet so standing on a tile boundary uses the occupied row.
+    const glm::vec2 feetOffset(0.f, HITBOX_SIZE.y / 2.f - 0.01f);
+    const bool sameLevel =
+        map->toTile(playerCenter + feetOffset).y == map->toTile(center + feetOffset).y;
     const bool seesPlayer =
-        std::abs(playerCenter.y - center.y) < CHASER_SIGHT_Y &&
-        std::abs(playerCenter.x - center.x) < CHASER_SIGHT_X;
+        distanceX * direction > 0.f && sameLevel &&
+        std::abs(distanceX) < CHASER_SIGHT_X;
 
     float speed = CHASER_PATROL_SPEED;
 

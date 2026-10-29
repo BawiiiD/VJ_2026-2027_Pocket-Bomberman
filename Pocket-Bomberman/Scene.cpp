@@ -324,6 +324,7 @@ void Scene::update(int deltaTime)
 
 	stateMs += deltaTime;
 	levelMs += deltaTime;
+	map->update(deltaTime);
 
 	glm::vec2 playerCenter = player->getCenter();
 
@@ -508,6 +509,14 @@ void Scene::explode(const Bomb &bomb)
 			TileType type = map->getTileType(tile.x, tile.y);
 			if(type == TileType::SOLID)
 				break;
+
+			// Only the top control can retract a fence; the bars block fire.
+			if(type == TileType::GATE_CONTROL)
+			{
+				if(map->destroyTile(tile.x, tile.y))
+					Audio::instance().playSound(Sound::DOOR_OPEN);
+				break;
+			}
 
 			// Bushes are destroyed and stop the fire, without drawing fire over them
 			if(type == TileType::DESTRUCTIBLE)

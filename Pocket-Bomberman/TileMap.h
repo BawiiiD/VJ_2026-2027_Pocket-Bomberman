@@ -20,6 +20,7 @@ enum class TileType
 	EMPTY,          // Background / decoration, entities move through it
 	SOLID,          // Walls and floors
 	DESTRUCTIBLE,   // Solid until an explosion removes it (bushes)
+	GATE_CONTROL,   // Permanent cap; explosions trigger fence retraction
 	DOOR            // Exit door, entities move through it
 };
 
@@ -37,6 +38,7 @@ public:
 	~TileMap();
 
 	void render() const;
+	void update(int deltaTime);
 	void free();
 
 	bool isLoaded() const { return loaded; }
@@ -51,7 +53,7 @@ public:
 	bool collides(const glm::vec2 &pos, const glm::vec2 &size) const;
 	glm::ivec2 toTile(const glm::vec2 &pixel) const;
 
-	// Removes a destructible tile. Returns true if there was one
+	// Removes a bush or starts retracting a fence, preserving its control.
 	bool destroyTile(int x, int y);
 	void placeDoor(int x, int y);
 	bool findDoor(glm::ivec2 &tile) const;
@@ -90,6 +92,11 @@ private:
 	vector<int> map;
 	vector<bool> flipped;
 	vector<bool> blocked;
+	struct RetractingGate
+	{
+		int x, controlY, bottomY, elapsedMs;
+	};
+	vector<RetractingGate> retractingGates;
 
 };
 

@@ -15,9 +15,13 @@ namespace
 	constexpr int BACKGROUND_TILE = 90;
 	constexpr int BUSH_TILE = 45;
 	constexpr int DOOR_TILE = 60;
+	constexpr int GATE_CONTROL_TILE = 46;
+	constexpr int GATE_BODY_TILE = 75;
+	constexpr int GATE_BOTTOM_TILE = 76;
+	constexpr int GATE_STEP_MS = 100;
 
-	// Decorative tiles that do not block movement (sky, waterfall pieces)
-	const int PASSABLE_TILES[] = { BACKGROUND_TILE, 46, 75, 76 };
+	// The blue fence tiles are solid; only the background is passable.
+	const int PASSABLE_TILES[] = { BACKGROUND_TILE };
 
 	// Tiled stores flip flags in the highest bits of each tile id
 	constexpr unsigned long FLIPPED_HORIZONTALLY = 0x80000000UL;
@@ -307,6 +311,8 @@ TileType TileMap::getTileType(int x, int y) const
 		return TileType::SOLID;
 	if(tile == BUSH_TILE)
 		return TileType::DESTRUCTIBLE;
+	if(tile == GATE_CONTROL_TILE)
+		return TileType::GATE_CONTROL;
 	if(tile == DOOR_TILE)
 		return TileType::DOOR;
 	for(int passable : PASSABLE_TILES)
@@ -319,7 +325,7 @@ TileType TileMap::getTileType(int x, int y) const
 bool TileMap::isSolid(int x, int y) const
 {
 	TileType type = getTileType(x, y);
-	if(type == TileType::SOLID || type == TileType::DESTRUCTIBLE)
+	if(type == TileType::SOLID || type == TileType::DESTRUCTIBLE || type == TileType::GATE_CONTROL)
 		return true;
 
 	return blocked[y * mapSize.x + x];
@@ -349,14 +355,63 @@ glm::ivec2 TileMap::toTile(const glm::vec2 &pixel) const
 
 bool TileMap::destroyTile(int x, int y)
 {
-	if(getTileType(x, y) != TileType::DESTRUCTIBLE)
+	const TileType type = getTileType(x, y);
+	if(type != TileType::DESTRUCTIBLE && type != TileType::GATE_CONTROL)
 		return false;
 
+	if(type == TileType::GATE_CONTROL)
+	{
+		for(const auto &gate : retractingGates)
+			if(gate.x == x && gate.controlY == y)
+				return false;
+		int bottom = y;
+		for(int row = y + 1; inside(x, row); ++row)
+		{
+			const int index = row * mapSize.x + x;
+			const int tile = map[index];
+			if(tile != GATE_BODY_TILE && tile != GATE_BOTTOM_TILE)
+				break;
+			bottom = row;
+			if(tile == GATE_BOTTOM_TILE)
+				break;
+		}
+		if(bottom == y)
+			return false;
+		retractingGates.push_back({ x, y, bottom, 0 });
+		return true;
+	}
 	map[y * mapSize.x + x] = BACKGROUND_TILE;
 	flipped[y * mapSize.x + x] = false;
 	prepareArrays();
 
 	return true;
+}
+
+void TileMap::update(int deltaTime)
+{
+	bool changed = false;
+	for(auto it = retractingGates.begin(); it != retractingGates.end();)
+	{
+		it->elapsedMs += deltaTime;
+		while(it->elapsedMs >= GATE_STEP_MS && it->bottomY > it->controlY)
+		{
+			it->elapsedMs -= GATE_STEP_MS;
+			const int index = it->bottomY * mapSize.x + it->x;
+			map[index] = BACKGROUND_TILE;
+			flipped[index] = false;
+			--it->bottomY;
+			// Move the bottom cap upwards along with the retracting fence.
+			if(it->bottomY > it->controlY)
+				map[it->bottomY * mapSize.x + it->x] = GATE_BOTTOM_TILE;
+			changed = true;
+		}
+		if(it->bottomY == it->controlY)
+			it = retractingGates.erase(it);
+		else
+			++it;
+	}
+	if(changed)
+		prepareArrays();
 }
 
 void TileMap::placeDoor(int x, int y)
