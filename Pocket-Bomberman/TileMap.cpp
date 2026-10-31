@@ -415,8 +415,8 @@ bool TileMap::destroyTile(int x, int y)
 			if(tile == GATE_BOTTOM_TILE)
 				break;
 		}
-		// No fence, or already retracted (only the bottom cap is left under the control)
-		if(bottom <= y + 1)
+		// No fence remains below the permanent control.
+		if(bottom <= y)
 			return false;
 		retractingGates.push_back({ x, y, bottom, 0 });
 		return true;
@@ -434,8 +434,8 @@ void TileMap::update(int deltaTime)
 	for(auto it = retractingGates.begin(); it != retractingGates.end();)
 	{
 		it->elapsedMs += deltaTime;
-		// The fence stops when the bottom cap is right below the control
-		while(it->elapsedMs >= GATE_STEP_MS && it->bottomY > it->controlY + 1)
+		// Retract every tile below the permanent control, including the last cap.
+		while(it->elapsedMs >= GATE_STEP_MS && it->bottomY > it->controlY)
 		{
 			it->elapsedMs -= GATE_STEP_MS;
 			const int index = it->bottomY * mapSize.x + it->x;
@@ -443,10 +443,11 @@ void TileMap::update(int deltaTime)
 			flipped[index] = false;
 			--it->bottomY;
 			// Move the bottom cap upwards along with the retracting fence.
-			map[it->bottomY * mapSize.x + it->x] = GATE_BOTTOM_TILE;
+			if(it->bottomY > it->controlY)
+				map[it->bottomY * mapSize.x + it->x] = GATE_BOTTOM_TILE;
 			changed = true;
 		}
-		if(it->bottomY == it->controlY + 1)
+		if(it->bottomY == it->controlY)
 			it = retractingGates.erase(it);
 		else
 			++it;
