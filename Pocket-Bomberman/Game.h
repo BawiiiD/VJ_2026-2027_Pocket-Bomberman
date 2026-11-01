@@ -8,6 +8,7 @@
 #include "Texture.h"
 #include "Text.h"
 #include "Menu.h"
+#include "Intro.h"
 #include "Scene.h"
 
 
@@ -59,6 +60,7 @@ public:
 private:
 	enum class GameState
 	{
+		INTRO,
 		MENU,
 		PLAYING
 	};
@@ -76,6 +78,7 @@ private:
 	Texture atlas;
 	Text text, bigText;
 
+	Intro intro;
 	Menu menu;
 	Scene scene;
 

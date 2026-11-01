@@ -33,12 +33,13 @@ void Game::init()
 
 	Audio::instance().init();
 
+	intro.init(texProgram, text);
 	menu.init(texProgram, atlas, text, bigText);
 	scene.init(texProgram, atlas, text, bigText);
 
-	// Starts the menu music
+	// Starts the menu music, which also plays during the intro
 	menu.reset();
-	state = GameState::MENU;
+	state = intro.isFinished() ? GameState::MENU : GameState::INTRO;
 }
 
 bool Game::update(int deltaTime)
@@ -48,6 +49,11 @@ bool Game::update(int deltaTime)
 
 	switch(state)
 	{
+	case GameState::INTRO:
+		intro.update(deltaTime);
+		if(intro.isFinished())
+			state = GameState::MENU;
+		break;
 	case GameState::MENU:
 		menu.update(deltaTime);
 		break;
@@ -70,7 +76,9 @@ void Game::render()
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	if(state == GameState::MENU)
+	if(state == GameState::INTRO)
+		intro.render();
+	else if(state == GameState::MENU)
 		menu.render();
 	else
 		scene.render();
@@ -81,6 +89,17 @@ void Game::keyPressed(int key)
 	if(key < 0 || key > GLFW_KEY_LAST)
 		return;
 	keys[key] = true;
+
+	// Any of these keys skips the intro
+	if(state == GameState::INTRO)
+	{
+		if(key == GLFW_KEY_ENTER || key == GLFW_KEY_SPACE || key == GLFW_KEY_ESCAPE)
+		{
+			intro.skip();
+			state = GameState::MENU;
+		}
+		return;
+	}
 
 	if(state == GameState::MENU)
 	{
@@ -153,6 +172,7 @@ void Game::shutdown()
 	// OpenGL objects have to be released while the context still exists
 	scene.shutdown();
 	menu.shutdown();
+	intro.shutdown();
 	text.free();
 	bigText.free();
 	texProgram.free();
