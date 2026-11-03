@@ -3,15 +3,14 @@
 
 
 #include <memory>
-#include <random>
 #include <vector>
 #include <glm/glm.hpp>
 #include "ShaderProgram.h"
 #include "TileMap.h"
 #include "Player.h"
-#include "Bomb.h"
-#include "Explosion.h"
-#include "Item.h"
+#include "BombSystem.h"
+#include "CollisionSystem.h"
+#include "RayHazards.h"
 #include "Enemy.h"
 #include "Boss.h"
 #include "Text.h"
@@ -54,15 +53,8 @@ private:
 	bool loadLevel(int level);
 	void unloadLevel();
 
-	void placeBomb();
-	void updateBombs(int deltaTime);
-	void explode(const Bomb &bomb);
-	void spawnItem(const glm::ivec2 &tile);
-	void updateCollisions();
 	void updateCamera();
 	void updateDoor();
-	bool rayOn() const;
-	bool insideRay(const glm::ivec2 &tile) const;
 	void killAllEnemies();
 	int enemiesLeft() const;
 	bool doorOpen() const;
@@ -74,15 +66,11 @@ private:
 private:
 	ShaderProgram *texProgram;
 	Texture *atlas;
-	Texture explosionTexture;
 	Text *text;
 	Text *bigText;
 
 	std::unique_ptr<TileMap> map;
 	std::unique_ptr<Player> player;
-	std::vector<std::unique_ptr<Bomb>> bombs;
-	std::vector<std::unique_ptr<Explosion>> explosions;
-	std::vector<std::unique_ptr<Item>> items;
 	std::vector<std::unique_ptr<Enemy>> enemies;
 	std::unique_ptr<Boss> boss;
 	std::vector<std::unique_ptr<Projectile>> projectiles;
@@ -94,9 +82,9 @@ private:
 	glm::ivec2 bossDoorTile;
 	std::unique_ptr<Sprite> doorSprite;
 
-	// Rays between emitter blocks, all of them shoot at the same time
-	std::vector<RayInfo> rays;
-	std::unique_ptr<Sprite> raySprite;
+	BombSystem bombSystem;
+	CollisionSystem collisionSystem;
+	RayHazards rayHazards;
 
 	// HUD icons
 	std::unique_ptr<Sprite> smallIcon;
@@ -121,7 +109,6 @@ private:
 	bool timeWarned;
 
 	glm::vec2 camera;
-	std::mt19937 random;
 
 };
 

@@ -3,7 +3,6 @@
 #include <sstream>
 #include <cmath>
 #include <algorithm>
-#include <iterator>
 #include <glm/gtc/matrix_transform.hpp>
 #include "Scene.h"
 #include "Game.h"
@@ -33,24 +32,6 @@ namespace
 
 	// Below this time the clock blinks and a warning sounds
 	constexpr int HURRY_UP_MS = 30000;
-
-	// Rays are on (deadly) and off for these times. At the end of the off time
-	// the emitters play their charging animation
-	constexpr int RAY_ON_MS = 1500;
-	constexpr int RAY_OFF_MS = 1500;
-	constexpr int RAY_CHARGE_MS = 600;
-	constexpr int RAY_FRAME_MS = 100;
-	// Emitter frames: waiting, charging (several) and shooting
-	constexpr int EMITTER_WAIT_FRAME = 0;
-	constexpr int EMITTER_CHARGE_FRAMES = 3;
-	constexpr int EMITTER_SHOOT_FRAME = 4;
-	// Part of the ray tile that hurts (the ray is drawn in rows 2 to 13)
-	constexpr float RAY_HIT_TOP = 3.f;
-	constexpr float RAY_HIT_HEIGHT = 10.f;
-
-	// Chance that a destroyed bush leaves an item (in %) and weight of each item
-	constexpr int ITEM_CHANCE = 40;
-	const double ITEM_WEIGHTS[] = { 3., 3., 1., 2. };   // BombUp, FireUp, Heart, SpeedUp
 
 	// 8x8 HUD icons in images/sprites.png (pixel coordinates)
 	const glm::ivec2 ICON_LIVES(0, 16);
@@ -162,7 +143,6 @@ Scene::Scene()
 	doorWasOpen = false;
 	timeWarned = false;
 	camera = glm::vec2(0.f);
-	random.seed(std::random_device()());
 }
 
 Scene::~Scene()
@@ -178,12 +158,7 @@ void Scene::init(ShaderProgram &program, Texture &atlasTexture, Text &smallText,
 	text = &smallText;
 	bigText = &largeText;
 
-	if(!explosionTexture.loadFromFile("images/explosion.png", TEXTURE_PIXEL_FORMAT_RGBA))
-		cout << "Could not load images/explosion.png" << endl;
-	explosionTexture.setWrapS(GL_CLAMP_TO_EDGE);
-	explosionTexture.setWrapT(GL_CLAMP_TO_EDGE);
-	explosionTexture.setMinFilter(GL_NEAREST);
-	explosionTexture.setMagFilter(GL_NEAREST);
+	bombSystem.init();
 
 	smallIcon.reset(Sprite::createSprite(glm::vec2(8.f), glm::vec2(8.f / ATLAS_SIZE), atlas, texProgram));
 	icon.reset(Sprite::createSprite(glm::vec2(16.f), atlasCellSize(), atlas, texProgram));
@@ -256,13 +231,7 @@ bool Scene::loadLevel(int level)
 	doorSprite->setFrame(map->getTileTexCoord(map->getDoorTileId()));
 	updateDoor();
 
-	rays = map->findRays();
-	raySprite.reset(Sprite::createSprite(
-		glm::vec2(float(map->getTileSize())),
-		map->getTileTexSize(),
-		&map->getTilesheet(),
-		texProgram
-	));
+	rayHazards.init(*map, *texProgram);
 
 	timeLeftMs = info.time * 1000;
 	timeUp = false;
@@ -280,16 +249,13 @@ bool Scene::loadLevel(int level)
 
 void Scene::unloadLevel()
 {
-	bombs.clear();
-	explosions.clear();
-	items.clear();
+	bombSystem.clear();
 	enemies.clear();
 	projectiles.clear();
 	boss.reset();
 	player.reset();
 	doorSprite.reset();
-	rays.clear();
-	raySprite.reset();
+	rayHazards.clear();
 	map.reset();
 }
 
@@ -320,7 +286,8 @@ void Scene::keyPressed(int key)
 	{
 	case GLFW_KEY_SPACE:
 	case GLFW_KEY_X:
-		placeBomb();
+		if(state == State::PLAYING && !player->isDying())
+			bombSystem.place(*map, *player, *atlas, *texProgram);
 		break;
 	case GLFW_KEY_G:
 		godMode = !godMode;
@@ -362,21 +329,25 @@ void Scene::update(int deltaTime)
 		boss->update(deltaTime, playerCenter, projectiles);
 	for(auto &projectile : projectiles)
 		projectile->update(deltaTime, *map);
-	for(auto &item : items)
-		item->update(deltaTime);
-	updateBombs(deltaTime);
-	for(auto &explosion : explosions)
-		explosion->update(deltaTime);
+	bombSystem.update(deltaTime, *map, *player, enemies, rayHazards, levelMs, *atlas, *texProgram);
 
-	updateCollisions();
+	collisionSystem.update(state == State::PLAYING, *player, enemies, boss.get(), projectiles,
+	                       bombSystem, rayHazards, map->getTileSize(), levelMs);
 
+	// Exit door: the player has to be inside the door tile
+	if(state == State::PLAYING && !player->isDying() && hasDoor && doorOpen() &&
+	   map->toTile(player->getCenter()) == doorTile)
+	{
+		player->celebrate();
+		changeState(State::LEVEL_CLEAR);
+		Audio::instance().playMusic(Music::CLEAR, false);
+	}
 	// Remove the entities that have finished
 	enemies.erase(remove_if(enemies.begin(), enemies.end(),
 		[](const std::unique_ptr<Enemy> &enemy) { return enemy->isDead(); }), enemies.end());
 	projectiles.erase(remove_if(projectiles.begin(), projectiles.end(),
 		[](const std::unique_ptr<Projectile> &projectile) { return !projectile->isAlive(); }), projectiles.end());
-	explosions.erase(remove_if(explosions.begin(), explosions.end(),
-		[](const std::unique_ptr<Explosion> &explosion) { return explosion->finished(); }), explosions.end());
+	bombSystem.removeFinishedExplosions();
 
 	updateDoor();
 
@@ -446,226 +417,6 @@ void Scene::update(int deltaTime)
 	updateCamera();
 }
 
-void Scene::placeBomb()
-{
-	if(state != State::PLAYING || player->isDying())
-		return;
-
-	if(int(bombs.size()) >= player->getStats().maxBombs)
-		return;
-
-	// Bombs are always aligned with the tiles
-	glm::ivec2 tile = player->getTile();
-	if(map->isSolid(tile.x, tile.y))
-		return;
-	for(const auto &bomb : bombs)
-		if(bomb->getTilePos() == tile)
-			return;
-
-	bombs.emplace_back(new Bomb(tile, player->getStats().fireRange, map->getTileSize(), *atlas, *texProgram));
-	Audio::instance().playSound(Sound::BOMB_PLACE);
-}
-
-void Scene::updateBombs(int deltaTime)
-{
-	for(auto &bomb : bombs)
-	{
-		bomb->update(deltaTime);
-
-		// Bombs inside a ray explode as soon as it shoots
-		if(rayOn() && insideRay(bomb->getTilePos()))
-			bomb->trigger();
-
-		// A new bomb becomes solid once nobody is inside it, so Bomberman can
-		// stand on it to reach higher places
-		if(!bomb->isSolid())
-		{
-			bool occupied = overlaps(player->getBounds(), bomb->bounds());
-			for(const auto &enemy : enemies)
-				occupied = occupied || overlaps(enemy->getBounds(), bomb->bounds());
-			if(!occupied)
-			{
-				bomb->setSolid(true);
-				map->setBlocked(bomb->getTilePos().x, bomb->getTilePos().y, true);
-			}
-		}
-	}
-
-	// Explode bombs one by one, as each explosion can trigger other bombs
-	bool exploded = true;
-	while(exploded)
-	{
-		exploded = false;
-		for(size_t i = 0; i < bombs.size(); i++)
-		{
-			if(bombs[i]->ready())
-			{
-				std::unique_ptr<Bomb> bomb = std::move(bombs[i]);
-				bombs.erase(bombs.begin() + i);
-				map->setBlocked(bomb->getTilePos().x, bomb->getTilePos().y, false);
-				explode(*bomb);
-				exploded = true;
-				break;
-			}
-		}
-	}
-}
-
-void Scene::explode(const Bomb &bomb)
-{
-	struct Direction
-	{
-		glm::ivec2 step;
-		Explosion::Piece middle;
-		Explosion::Piece end;
-	};
-	const Direction directions[] =
-	{
-		{ glm::ivec2(-1, 0), Explosion::Piece::HORIZONTAL, Explosion::Piece::END_LEFT },
-		{ glm::ivec2(1, 0), Explosion::Piece::HORIZONTAL, Explosion::Piece::END_RIGHT },
-		{ glm::ivec2(0, -1), Explosion::Piece::VERTICAL, Explosion::Piece::END_UP },
-		{ glm::ivec2(0, 1), Explosion::Piece::VERTICAL, Explosion::Piece::END_DOWN }
-	};
-
-	vector<Explosion::Cell> cells;
-	Explosion::Cell center = { bomb.getTilePos(), Explosion::Piece::CENTER };
-	cells.push_back(center);
-
-	for(const Direction &direction : directions)
-	{
-		for(int distance = 1; distance <= bomb.getRange(); distance++)
-		{
-			glm::ivec2 tile = bomb.getTilePos() + direction.step * distance;
-			// getTileType ignores the blocked tiles, so solid bombs are found below
-			TileType type = map->getTileType(tile.x, tile.y);
-			if(type == TileType::SOLID)
-				break;
-
-			// Only the top control can retract a fence; the bars block fire.
-			if(type == TileType::GATE_CONTROL)
-			{
-				if(map->destroyTile(tile.x, tile.y))
-					Audio::instance().playSound(Sound::DOOR_OPEN);
-				break;
-			}
-
-			// Bushes are destroyed and stop the fire, without drawing fire over them
-			if(type == TileType::DESTRUCTIBLE)
-			{
-				map->destroyTile(tile.x, tile.y);
-				spawnItem(tile);
-				Audio::instance().playSound(Sound::BUSH_BREAK);
-				break;
-			}
-
-			// Other bombs explode too (chain reaction) and stop the fire.
-			// Their own explosion draws the center on that tile
-			bool bombFound = false;
-			for(auto &other : bombs)
-				if(other->getTilePos() == tile)
-				{
-					other->trigger();
-					bombFound = true;
-				}
-			if(bombFound)
-				break;
-
-			// The end piece is only drawn when the fire reaches its full range
-			Explosion::Cell cell = { tile, distance == bomb.getRange() ? direction.end : direction.middle };
-			cells.push_back(cell);
-		}
-	}
-
-	explosions.emplace_back(new Explosion(cells, map->getTileSize(), explosionTexture, *texProgram));
-	Audio::instance().playSound(Sound::EXPLOSION);
-}
-
-void Scene::spawnItem(const glm::ivec2 &tile)
-{
-	std::uniform_int_distribution<int> chance(0, 99);
-	if(chance(random) >= ITEM_CHANCE)
-		return;
-
-	std::discrete_distribution<int> itemType(std::begin(ITEM_WEIGHTS), std::end(ITEM_WEIGHTS));
-	items.emplace_back(new Item(tile, ItemType(itemType(random)), map->getTileSize(), *atlas, *texProgram));
-}
-
-void Scene::updateCollisions()
-{
-	// Fire against enemies, the boss and the boss projectiles
-	for(const auto &explosion : explosions)
-	{
-		for(auto &enemy : enemies)
-			if(!enemy->isDying() && explosion->hits(enemy->getBounds()))
-				enemy->kill();
-		if(boss && explosion->hits(boss->getBounds()))
-			boss->hit();
-		for(auto &projectile : projectiles)
-			if(explosion->hits(projectile->getBounds()))
-				projectile->destroy();
-	}
-
-	if(state != State::PLAYING || player->isDying())
-		return;
-
-	glm::vec4 playerBox = player->getBounds();
-
-	// Things that hurt the player
-	for(const auto &explosion : explosions)
-		if(explosion->hits(playerBox))
-			player->hurt(true);
-
-	for(const auto &enemy : enemies)
-		if(!enemy->isDying() && overlaps(shrink(enemy->getBounds(), 1.f), playerBox))
-			player->hurt(false);
-
-	if(boss && !boss->isDying() && overlaps(boss->getBounds(), playerBox))
-		player->hurt(false);
-
-	if(rayOn())
-	{
-		float tileSize = float(map->getTileSize());
-		for(const RayInfo &ray : rays)
-		{
-			glm::vec4 rayBox(ray.start.x * tileSize, ray.start.y * tileSize + RAY_HIT_TOP,
-			                 ray.length * tileSize, RAY_HIT_HEIGHT);
-			if(overlaps(rayBox, playerBox))
-				player->hurt(true);
-		}
-	}
-
-	for(auto &projectile : projectiles)
-		if(projectile->isAlive() && overlaps(projectile->getBounds(), playerBox))
-		{
-			player->hurt(false);
-			projectile->destroy();
-		}
-
-	if(player->isDying())
-		return;
-
-	// Items
-	for(size_t i = 0; i < items.size(); )
-	{
-		if(overlaps(items[i]->bounds(), playerBox))
-		{
-			player->applyItem(items[i]->getType());
-			Audio::instance().playSound(Sound::ITEM_GET);
-			items.erase(items.begin() + i);
-		}
-		else
-			i++;
-	}
-
-	// Exit door: the player has to be inside the door tile
-	if(hasDoor && doorOpen() && map->toTile(player->getCenter()) == doorTile)
-	{
-		player->celebrate();
-		changeState(State::LEVEL_CLEAR);
-		Audio::instance().playMusic(Music::CLEAR, false);
-	}
-}
-
 void Scene::updateDoor()
 {
 	// In the boss level the door appears when the boss is defeated
@@ -710,20 +461,6 @@ int Scene::enemiesLeft() const
 bool Scene::doorOpen() const
 {
 	return enemiesLeft() == 0 && (!boss || boss->isDefeated());
-}
-
-bool Scene::rayOn() const
-{
-	return levelMs % (RAY_ON_MS + RAY_OFF_MS) < RAY_ON_MS;
-}
-
-bool Scene::insideRay(const glm::ivec2 &tile) const
-{
-	for(const RayInfo &ray : rays)
-		if(tile.y == ray.start.y && tile.x >= ray.start.x && tile.x < ray.start.x + ray.length)
-			return true;
-
-	return false;
 }
 
 void Scene::updateCamera()
@@ -771,46 +508,9 @@ void Scene::render()
 		texProgram->setUniform4f("color", 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
-	// Rays: the emitters wait, charge and shoot. The ray is only drawn while shooting
-	if(raySprite)
-	{
-		int cycleMs = RAY_ON_MS + RAY_OFF_MS;
-		int rayTime = levelMs % cycleMs;
-		int chargeStart = cycleMs - RAY_CHARGE_MS;
+	rayHazards.render(*map, levelMs);
 
-		int emitterFrame = EMITTER_WAIT_FRAME;
-		if(rayOn())
-			emitterFrame = EMITTER_SHOOT_FRAME;
-		else if(rayTime >= chargeStart)
-			emitterFrame = 1 + (rayTime - chargeStart) * EMITTER_CHARGE_FRAMES / RAY_CHARGE_MS;
-
-		int tileSize = map->getTileSize();
-		for(const RayInfo &ray : rays)
-		{
-			// The emitters are tiles of the map, their other frames are drawn over them
-			raySprite->setFrame(map->getTileTexCoord(map->getEmitterTileId(true, emitterFrame)));
-			raySprite->setPosition(glm::vec2((ray.start - glm::ivec2(1, 0)) * tileSize));
-			raySprite->render();
-			raySprite->setFrame(map->getTileTexCoord(map->getEmitterTileId(false, emitterFrame)));
-			raySprite->setPosition(glm::vec2((ray.start + glm::ivec2(ray.length, 0)) * tileSize));
-			raySprite->render();
-
-			if(!rayOn())
-				continue;
-
-			raySprite->setFrame(map->getTileTexCoord(map->getRayTileId(levelMs / RAY_FRAME_MS)));
-			for(int i = 0; i < ray.length; i++)
-			{
-				raySprite->setPosition(glm::vec2((ray.start + glm::ivec2(i, 0)) * tileSize));
-				raySprite->render();
-			}
-		}
-	}
-
-	for(auto &item : items)
-		item->render();
-	for(auto &bomb : bombs)
-		bomb->render();
+	bombSystem.renderItemsAndBombs();
 	if(boss)
 		boss->render();
 	for(auto &enemy : enemies)
@@ -818,8 +518,7 @@ void Scene::render()
 	player->render();
 	for(auto &projectile : projectiles)
 		projectile->render();
-	for(auto &explosion : explosions)
-		explosion->render();
+	bombSystem.renderExplosions();
 
 	// Messages over the world, in screen coordinates
 	projection = glm::ortho(0.f, float(VIEW_WIDTH), float(WORLD_VIEW_HEIGHT), 0.f);
