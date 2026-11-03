@@ -5,7 +5,6 @@
 
 #define TARGET_FRAMERATE 60.0f
 
-// Update keys[] and mouse position when the user presses/releases a key or moves the mouse
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	if (action == GLFW_PRESS)
@@ -39,7 +38,7 @@ int main(void)
 
 	// Make the window not resizable
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	// Create a 640x480 windowed mode window and its OpenGL context
+	// Create a windowed mode window and its OpenGL context (640x480)
 	window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Pocket Bomberman", NULL, NULL);
 	if (!window)
 	{
@@ -61,12 +60,11 @@ int main(void)
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-	// Load resources and initialize the game
+	// Init step of the game loop
 	Game::instance().init();
-	// Start the clock
 	timePreviousFrame = glfwGetTime();
 
-	// Run until user closes the window
+	// Loop until the user closes the window
 	while (!glfwWindowShouldClose(window))
 	{
 		currentTime = glfwGetTime();
@@ -82,12 +80,14 @@ int main(void)
 			glfwSwapBuffers(window);
 		}
 
-		// Process pending window events
+		// Poll for and process event
 		glfwPollEvents();
 	}
 
+	// Destroy window and terminate GLFW
 	Game::instance().shutdown();
     glfwDestroyWindow(window);
+	
 	glfwTerminate();
 	return 0;
 }
