@@ -512,7 +512,7 @@ void Scene::render()
 
 	rayHazards.render(*map, levelMs);
 
-	bombSystem.renderItemsAndBombs();
+	bombSystem.renderItemsAndBombs(*texProgram);
 	if(boss)
 		boss->render();
 	for(auto &enemy : enemies)
@@ -520,7 +520,7 @@ void Scene::render()
 	player->render();
 	for(auto &projectile : projectiles)
 		projectile->render();
-	bombSystem.renderExplosions();
+	bombSystem.renderExplosions(*texProgram);
 
 	// Messages over the world, in screen coordinates
 	projection = glm::ortho(0.f, float(VIEW_WIDTH), float(WORLD_VIEW_HEIGHT), 0.f);

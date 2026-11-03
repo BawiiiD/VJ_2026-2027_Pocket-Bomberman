@@ -25,6 +25,7 @@ public:
     {
         glm::ivec2 tile;
         Piece piece;
+        bool damaging = true;
     };
 
     Explosion(const std::vector<Cell> &cells,
@@ -36,7 +37,7 @@ public:
     void render();
 
     bool finished() const;
-    // True if any tile of the explosion overlaps the box
+    // True if any damaging tile of the explosion overlaps the box
     bool hits(const glm::vec4 &box) const;
     const std::vector<Cell> &getCells() const;
 

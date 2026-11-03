@@ -21,8 +21,8 @@ public:
 	void update(int deltaTime, TileMap &map,
 	            const RayHazards &rays, int levelMs, Texture &atlas, ShaderProgram &program);
 	void removeFinishedExplosions();
-	void renderItemsAndBombs();
-	void renderExplosions();
+	void renderItemsAndBombs(ShaderProgram &program);
+	void renderExplosions(ShaderProgram &program);
 
 	const std::vector<std::unique_ptr<Explosion>> &getExplosions() const { return explosions; }
 	std::vector<std::unique_ptr<Item>> &getItems() { return items; }

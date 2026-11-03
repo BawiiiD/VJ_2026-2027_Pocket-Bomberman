@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -14,6 +15,8 @@ namespace
 	// Tile ids (0-based, as in the Tiled tileset images/Mapa.png)
 	constexpr int BACKGROUND_TILE = 90;
 	constexpr int BUSH_TILE = 45;
+	constexpr int BUSH_FLASH_STEP_MS = 70;
+	constexpr int BUSH_FLASH_DURATION_MS = 10 * BUSH_FLASH_STEP_MS;
 	constexpr int DOOR_TILE = 60;
 	constexpr int GATE_CONTROL_TILE = 46;
 	constexpr int GATE_BODY_TILE = 75;
@@ -109,6 +112,33 @@ void TileMap::render() const
 	glEnableVertexAttribArray(texCoordLocation);
 	glDrawArrays(GL_TRIANGLES, 0, 6 * nTiles);
 	glDisable(GL_TEXTURE_2D);
+
+	if(bushFlashes.empty())
+		return;
+
+	const bool blending = glIsEnabled(GL_BLEND);
+	GLint srcRgb, dstRgb, srcAlpha, dstAlpha;
+	glGetIntegerv(GL_BLEND_SRC_RGB, &srcRgb);
+	glGetIntegerv(GL_BLEND_DST_RGB, &dstRgb);
+	glGetIntegerv(GL_BLEND_SRC_ALPHA, &srcAlpha);
+	glGetIntegerv(GL_BLEND_DST_ALPHA, &dstAlpha);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	for(const BushFlash &flash : bushFlashes)
+	{
+		const float alpha = (flash.elapsedMs / BUSH_FLASH_STEP_MS) % 2 == 0 ? 0.9f : 0.15f;
+		program->setUniform4f("color", 1.f, 1.f, 1.f, alpha);
+		bushFlashSprite->setPosition(glm::vec2(flash.tile * tileSize));
+		bushFlashSprite->setFlipX(flash.flipped);
+		bushFlashSprite->render();
+	}
+	program->setUniform4f("color", 1.f, 1.f, 1.f, 1.f);
+	glm::mat4 modelview(1.f);
+	program->setUniformMatrix4f("modelview", modelview);
+	program->setUniform2f("texCoordDispl", 0.f, 0.f);
+	glBlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha);
+	if(!blending)
+		glDisable(GL_BLEND);
 }
 
 void TileMap::free()
@@ -431,6 +461,13 @@ bool TileMap::destroyTile(int x, int y)
 		retractingGates.push_back({ x, y, bottom, 0 });
 		return true;
 	}
+	if(!bushFlashSprite)
+	{
+		bushFlashSprite.reset(Sprite::createSprite(glm::vec2(float(tileSize)),
+		                                          getTileTexSize(), &tilesheet, program));
+		bushFlashSprite->setFrame(getTileTexCoord(BUSH_TILE));
+	}
+	bushFlashes.push_back({ glm::ivec2(x, y), flipped[y * mapSize.x + x], 0 });
 	map[y * mapSize.x + x] = BACKGROUND_TILE;
 	flipped[y * mapSize.x + x] = false;
 	prepareArrays();
@@ -440,6 +477,11 @@ bool TileMap::destroyTile(int x, int y)
 
 void TileMap::update(int deltaTime)
 {
+	for(BushFlash &flash : bushFlashes)
+		flash.elapsedMs += deltaTime;
+	bushFlashes.erase(std::remove_if(bushFlashes.begin(), bushFlashes.end(),
+		[](const BushFlash &flash) { return flash.elapsedMs >= BUSH_FLASH_DURATION_MS; }), bushFlashes.end());
+
 	bool changed = false;
 	for(auto it = retractingGates.begin(); it != retractingGates.end();)
 	{

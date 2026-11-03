@@ -4,9 +4,11 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 #include "Texture.h"
 #include "ShaderProgram.h"
+#include "Sprite.h"
 
 
 // Class Tilemap loads a level exported from Tiled (.tmx with CSV encoding and an
@@ -105,6 +107,14 @@ private:
 	vector<int> map;
 	vector<bool> flipped;
 	vector<bool> blocked;
+	struct BushFlash
+	{
+		glm::ivec2 tile;
+		bool flipped;
+		int elapsedMs;
+	};
+	vector<BushFlash> bushFlashes;
+	std::unique_ptr<Sprite> bushFlashSprite;
 	struct RetractingGate
 	{
 		int x, controlY, bottomY, elapsedMs;

@@ -71,6 +71,9 @@ bool Explosion::hits(const glm::vec4 &box) const
 
     for (const Cell &cell : cells)
     {
+        if (!cell.damaging)
+            continue;
+
         const glm::vec4 cellBox(
             cell.tile.x * tileSize,
             cell.tile.y * tileSize,

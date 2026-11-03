@@ -122,10 +122,11 @@ void BombSystem::explode(const Bomb &bomb, TileMap &map, Texture &atlas, ShaderP
 				break;
 			}
 
-			// Bushes are destroyed and stop the fire, without drawing fire over them
+			// Bushes stop the blast but still get a visual flame tip.
 			if(type == TileType::DESTRUCTIBLE)
 			{
 				map.destroyTile(tile.x, tile.y);
+				cells.push_back({ tile, direction.end, false });
 				spawnItem(tile, map, atlas, program);
 				Audio::instance().playSound(Sound::BUSH_BREAK);
 				break;
@@ -169,16 +170,27 @@ void BombSystem::removeFinishedExplosions()
 		[](const std::unique_ptr<Explosion> &explosion) { return explosion->finished(); }), explosions.end());
 }
 
-void BombSystem::renderItemsAndBombs()
+void BombSystem::renderItemsAndBombs(ShaderProgram &program)
 {
 	for(auto &item : items)
 		item->render();
+
+	if(bombs.empty())
+		return;
+
+	program.setUniform3f("recolor", 0.6f, 0.6f, 0.7f);
 	for(auto &bomb : bombs)
 		bomb->render();
+	program.setUniform3f("recolor", 0.f, 0.f, 0.f);
 }
 
-void BombSystem::renderExplosions()
+void BombSystem::renderExplosions(ShaderProgram &program)
 {
+	if(explosions.empty())
+		return;
+
+	program.setUniform3f("recolor", 1.f, 0.7f, 0.f);
 	for(auto &explosion : explosions)
 		explosion->render();
+	program.setUniform3f("recolor", 0.f, 0.f, 0.f);
 }
