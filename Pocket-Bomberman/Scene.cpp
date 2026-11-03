@@ -478,7 +478,9 @@ void Scene::updateCamera()
 			camera[axis] = glm::clamp(target[axis], 0.f, mapSize[axis] - view[axis]);
 	}
 
-	camera = glm::round(camera);
+	// Align to screen pixels so the zoomed camera can move one screen pixel at a time.
+	constexpr float screenPixelsPerWorldPixel = CAMERA_ZOOM * PIXEL_SCALE;
+	camera = glm::round(camera * screenPixelsPerWorldPixel) / screenPixelsPerWorldPixel;
 }
 
 void Scene::render()
