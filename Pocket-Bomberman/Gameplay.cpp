@@ -51,9 +51,10 @@ bool moveAndCollide(const TileMap &map,
     if (delta == 0.f)
         return false;
 
+    const glm::vec2 previousPos = pos;
     pos[axis] += delta;
 
-    if (!map.collides(pos, size))
+    if (!map.collides(pos, size, previousPos))
         return false;
 
     // Place the box right next to the tile it collided with

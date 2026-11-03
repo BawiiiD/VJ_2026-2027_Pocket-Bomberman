@@ -329,7 +329,7 @@ void Scene::update(int deltaTime)
 		boss->update(deltaTime, playerCenter, projectiles);
 	for(auto &projectile : projectiles)
 		projectile->update(deltaTime, *map);
-	bombSystem.update(deltaTime, *map, *player, enemies, rayHazards, levelMs, *atlas, *texProgram);
+	bombSystem.update(deltaTime, *map, rayHazards, levelMs, *atlas, *texProgram);
 
 	collisionSystem.update(state == State::PLAYING, *player, enemies, boss.get(), projectiles,
 	                       bombSystem, rayHazards, map->getTileSize(), levelMs);

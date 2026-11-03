@@ -57,7 +57,7 @@ public:
 	// A tile is solid if it is a wall, a bush or it is blocked by a bomb
 	bool isSolid(int x, int y) const;
 	// True if the box (in pixels) overlaps any solid tile
-	bool collides(const glm::vec2 &pos, const glm::vec2 &size) const;
+	bool collides(const glm::vec2 &pos, const glm::vec2 &size, const glm::vec2 &previousPos) const;
 	glm::ivec2 toTile(const glm::vec2 &pixel) const;
 
 	// Removes a bush or starts retracting a fence, preserving its control.

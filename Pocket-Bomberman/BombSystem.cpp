@@ -3,7 +3,6 @@
 #include <iterator>
 #include "BombSystem.h"
 #include "Audio.h"
-#include "Enemy.h"
 #include "Gameplay.h"
 #include "Player.h"
 #include "RayHazards.h"
@@ -41,16 +40,13 @@ void BombSystem::place(TileMap &map, const Player &player, Texture &atlas, Shade
 	glm::ivec2 tile = player.getTile();
 	if(map.isSolid(tile.x, tile.y))
 		return;
-	for(const auto &bomb : bombs)
-		if(bomb->getTilePos() == tile)
-			return;
 
 	bombs.emplace_back(new Bomb(tile, player.getStats().fireRange, map.getTileSize(), atlas, program));
+	map.setBlocked(tile.x, tile.y, true);
 	Audio::instance().playSound(Sound::BOMB_PLACE);
 }
 
-void BombSystem::update(int deltaTime, TileMap &map, const Player &player,
-	            const std::vector<std::unique_ptr<Enemy>> &enemies,
+void BombSystem::update(int deltaTime, TileMap &map,
 	            const RayHazards &rays, int levelMs, Texture &atlas, ShaderProgram &program)
 {
 	for(auto &item : items)
@@ -63,20 +59,6 @@ void BombSystem::update(int deltaTime, TileMap &map, const Player &player,
 		// Bombs inside a ray explode as soon as it shoots
 		if(rays.hitsTile(bomb->getTilePos(), levelMs))
 			bomb->trigger();
-
-		// A new bomb becomes solid once nobody is inside it, so Bomberman can
-		// stand on it to reach higher places
-		if(!bomb->isSolid())
-		{
-			bool occupied = overlaps(player.getBounds(), bomb->bounds());
-			for(const auto &enemy : enemies)
-				occupied = occupied || overlaps(enemy->getBounds(), bomb->bounds());
-			if(!occupied)
-			{
-				bomb->setSolid(true);
-				map.setBlocked(bomb->getTilePos().x, bomb->getTilePos().y, true);
-			}
-		}
 	}
 
 	// Explode bombs one by one, as each explosion can trigger other bombs

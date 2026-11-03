@@ -29,9 +29,7 @@ Bomb::Bomb(glm::ivec2 tile,
       range(range),
       remainingMs(FUSE_MS),
       tickMs(1000 * BOMB_FRAMES / BOMB_FPS),
-      tileSize(tileSize),
-      triggered(false),
-      solid(false)
+      triggered(false)
 {
     sprite.reset(Sprite::createSprite(
         glm::vec2(float(tileSize)),
@@ -100,24 +98,4 @@ glm::ivec2 Bomb::getTilePos() const
 int Bomb::getRange() const
 {
     return range;
-}
-
-glm::vec4 Bomb::bounds() const
-{
-    return glm::vec4(
-        tile.x * tileSize,
-        tile.y * tileSize,
-        tileSize,
-        tileSize
-    );
-}
-
-bool Bomb::isSolid() const
-{
-    return solid;
-}
-
-void Bomb::setSolid(bool value)
-{
-    solid = value;
 }

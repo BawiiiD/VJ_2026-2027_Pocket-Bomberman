@@ -372,18 +372,28 @@ bool TileMap::isSolid(int x, int y) const
 }
 
 // Collision test for axis aligned bounding boxes against the grid
-bool TileMap::collides(const glm::vec2 &pos, const glm::vec2 &size) const
+bool TileMap::collides(const glm::vec2 &pos, const glm::vec2 &size, const glm::vec2 &previousPos) const
 {
 	// The small epsilon makes a box that exactly touches a tile not collide with it
-	int x0 = int(floor(pos.x / tileSize));
-	int x1 = int(floor((pos.x + size.x - 0.01f) / tileSize));
-	int y0 = int(floor(pos.y / tileSize));
-	int y1 = int(floor((pos.y + size.y - 0.01f) / tileSize));
+	const glm::vec2 innerSize = size - glm::vec2(0.01f);
+	const glm::ivec2 first = toTile(pos);
+	const glm::ivec2 last = toTile(pos + innerSize);
+	const glm::ivec2 previousFirst = toTile(previousPos);
+	const glm::ivec2 previousLast = toTile(previousPos + innerSize);
 
-	for(int y = y0; y <= y1; y++)
-		for(int x = x0; x <= x1; x++)
-			if(isSolid(x, y))
+	for(int y = first.y; y <= last.y; y++)
+		for(int x = first.x; x <= last.x; x++)
+		{
+			const TileType type = getTileType(x, y);
+			if(type == TileType::SOLID || type == TileType::DESTRUCTIBLE || type == TileType::GATE_CONTROL)
 				return true;
+
+			// A character already overlapping a bomb may move out of its tile.
+			const bool wasInside = x >= previousFirst.x && x <= previousLast.x &&
+			                       y >= previousFirst.y && y <= previousLast.y;
+			if(blocked[y * mapSize.x + x] && !wasInside)
+				return true;
+		}
 
 	return false;
 }

@@ -23,11 +23,6 @@ public:
 
     glm::ivec2 getTilePos() const;
     int getRange() const;
-    glm::vec4 bounds() const;
-
-    // A bomb is solid when the player and enemies are not inside it
-    bool isSolid() const;
-    void setSolid(bool solid);
 
 private:
     glm::ivec2 tile;
@@ -35,9 +30,7 @@ private:
     int remainingMs;
     // Time until the next tick sound
     int tickMs;
-    int tileSize;
     bool triggered;
-    bool solid;
     std::unique_ptr<Sprite> sprite;
 };
 

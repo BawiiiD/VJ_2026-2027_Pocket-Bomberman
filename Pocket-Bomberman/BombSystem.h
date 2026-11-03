@@ -8,7 +8,6 @@
 #include "Explosion.h"
 #include "Item.h"
 
-class Enemy;
 class Player;
 class RayHazards;
 class TileMap;
@@ -19,8 +18,7 @@ public:
 	void init();
 	void clear();
 	void place(TileMap &map, const Player &player, Texture &atlas, ShaderProgram &program);
-	void update(int deltaTime, TileMap &map, const Player &player,
-	            const std::vector<std::unique_ptr<Enemy>> &enemies,
+	void update(int deltaTime, TileMap &map,
 	            const RayHazards &rays, int levelMs, Texture &atlas, ShaderProgram &program);
 	void removeFinishedExplosions();
 	void renderItemsAndBombs();
