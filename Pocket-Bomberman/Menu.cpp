@@ -211,7 +211,7 @@ void Menu::renderCredits()
 
     text->renderCentered("PROGRAMMING", VIEW_WIDTH / 2.f, 56.f, HEADER_COLOR);
     text->renderCentered("JUN ZHE XIA", VIEW_WIDTH / 2.f, 70.f, HIGHLIGHT_COLOR);
-    text->renderCentered("PARTNER NAME", VIEW_WIDTH / 2.f, 82.f, HIGHLIGHT_COLOR);
+    text->renderCentered("DAIWEI CHEN", VIEW_WIDTH / 2.f, 82.f, HIGHLIGHT_COLOR);
 
     text->renderCentered("BASED ON", VIEW_WIDTH / 2.f, 112.f, HEADER_COLOR);
     text->renderCentered("POCKET BOMBERMAN (HUDSON SOFT, 1998)", VIEW_WIDTH / 2.f, 126.f, HIGHLIGHT_COLOR);
