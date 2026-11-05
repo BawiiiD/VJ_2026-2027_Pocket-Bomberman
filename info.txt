@@ -1,39 +1,104 @@
 POCKET BOMBERMAN - Exercici 2D (VJ 2026/27 Q1)
+==============================================
 
 Group members
 -------------
 - Jun Zhe Xia
-- <partner name>
+- Daiwei Chen
 
-Implemented features (basic part)
----------------------------------
+
+Implemented features
+--------------------
+
+Basic part
 - 4 screens: main menu, game, instructions and credits.
-- 5 levels designed in Tiled (levels/*.tmx). In each one all enemies must be
-  defeated to open the exit door. The last level has a boss; its door appears
-  when the boss is defeated.
-- Bomberman walks left/right and jumps (variable jump height).
+- 5 levels designed with Tiled (levels/map0X.tmx + levels/level0X.txt). In
+  each one all the enemies have to be defeated to open the exit door, and
+  Bomberman has to walk into it. The levels are bigger than the screen and
+  the camera follows Bomberman.
+- Bomberman walks left and right and jumps. The jump is higher when the key
+  is held and there is a short margin to jump just after leaving a ledge.
 - 3 enemies with different behaviours:
-    * Walker (yellow): patrols its platform, turns at walls and edges.
-    * Hopper (black): waits and jumps towards the player.
-    * Chaser (pink): patrols slowly and runs after the player when it sees him.
-- Touching an enemy costs a life unless Bomberman has the heart.
-- 3 lives; losing all of them shows GAME OVER and returns to the menu.
-- Bombs are always placed aligned with the tiles, float in the air, explode
-  after 2.5 s and kill enemies and Bomberman. Explosions trigger other bombs.
+    * Walker (pink): patrols its platform and turns around at walls and edges.
+    * Hopper (orange): waits on the floor and then jumps towards Bomberman.
+    * Chaser (yellow): patrols slowly and runs after Bomberman when it sees
+      him in front of it on the same floor. It never falls from its platform.
+  Touching an enemy costs a life, unless Bomberman has the heart.
+- 3 lives. After dying the level starts again with the items Bomberman had
+  when it started. Losing the 3 lives shows GAME OVER and goes back to the
+  main menu.
+- Bombs are always placed in the center of a tile and float in the air.
+  They explode after 2.5 s (blinking faster at the end) and the fire kills
+  enemies and Bomberman. A bomb hit by the fire explodes too (chain reaction).
 - Bomberman can stand on his own bombs to reach higher places.
-- Destructible bushes that may leave items.
-- 4 items: Bomb Up, Fire Up, Heart (protects from one hit) and Speed Up.
-- Time limit per level.
-- Boss (tree) in level 5: throws seeds and birds, needs 5 hits.
-- HUD: time left, lives, simultaneous bombs, explosion size, heart, speed,
-  enemies left, stage and boss health.
-- Cheats: G (god mode on/off), K (kill all enemies, opens the door),
-  1-5 (load that level).
+- Destructible bushes. Each level file says which bushes leave an item and
+  which one (POWERUP lines).
+- 4 items: Bomb Up (+1 bomb at the same time), Fire Up (+1 tile of
+  explosion), Heart (survives one hit) and Speed Up (walks faster). They are
+  kept from one level to the next.
+- Time limit in each level. When it runs out Bomberman loses a life.
+- Boss in level 5: a tree that walks from side to side, throws seeds in an
+  arc and birds that fly towards Bomberman. It needs 5 explosions and
+  attacks faster when it is almost defeated. When it dies the exit door
+  appears.
+- HUD: time left, lives, bombs at the same time, explosion size, heart,
+  speed level, enemies left and the stage (or the boss health in level 5).
+- Cheats:
+    G      God mode on/off (Bomberman is invulnerable)
+    K      Kills all the enemies (and the boss) and opens the exit door
+    1 - 5  Loads that level
+
+Level elements
+- Spouts with a fence below them: the fence is a wall. When the fire of a
+  bomb reaches the spout, the fence goes up and leaves the way open.
+- Ray emitters: two blocks that wait, charge and shoot a ray between them
+  for 1.5 s. The ray kills Bomberman and makes the bombs inside it explode.
+
+Polish
+- Sound (miniaudio): a different music for the menu, each world and the
+  boss, jingles for stage clear, time up, game over and victory, and sound
+  effects for the bombs, explosions, bushes, items, jumping, landing, deaths,
+  the boss, the door opening, the time warning and the menus.
+- Intro with the story of the original game (ENTER, SPACE or ESC skip it).
+- Animations for every event: walking, jumping, falling, two different death
+  animations (fire or enemy), celebrating at the door, enemies dying and
+  blinking, bombs blinking faster before exploding, explosions that grow and
+  shrink, bushes that blink when destroyed, floating items, the boss flashing
+  red when hit and shaking when it dies, Bomberman blinking after losing the
+  heart, the fence going up and the ray emitters charging.
+- Transitions: stage title, stage clear, time up, game over and victory
+  banners, and fades in the intro. The closed door is drawn darker until all
+  the enemies are defeated, and the clock blinks in red in the last 30 s.
+
 
 Instructions
 ------------
-- LEFT / RIGHT: move
-- UP or Z: jump
-- SPACE or X: drop a bomb
-- ESC: back to the main menu (quits the game from the main menu)
-- In the menus: UP / DOWN to choose, ENTER to confirm.
+Goal: in each level defeat all the enemies with the bombs and then walk into
+the exit door before the time runs out. In level 5 defeat the boss.
+
+Controls
+    LEFT / RIGHT   Move
+    UP or Z        Jump (hold it to jump higher)
+    SPACE or X     Drop a bomb
+    ESC            Back to the main menu (in the main menu it quits the game)
+
+Menus
+    UP / DOWN      Choose an option
+    ENTER          Confirm (ENTER, SPACE or ESC go back from the
+                   instructions and credits screens)
+    ENTER or SPACE Skip the intro and the game over / victory screens
+
+Tips
+- Bombs float: drop one, jump on it and drop another one to climb.
+- Your own bombs can kill you, so step away before they explode.
+- Bomb the spouts to open the fences, and cross the rays while they are off.
+
+
+Credits
+-------
+- Based on Pocket Bomberman (Hudson Soft, 1998).
+- Sprites and tiles: The Spriters Resource (the intro sheet was ripped by
+  Fret & Woppet).
+- Music: official Pocket Bomberman soundtrack, from KHInsider.
+- Sound effects: made with jsfxr.
+- Libraries: GLFW, GLEW, GLM, SOIL and miniaudio.

@@ -209,15 +209,19 @@ void Menu::renderCredits()
 {
     bigText->renderCentered("CREDITS", VIEW_WIDTH / 2.f, 16.f, TITLE_COLOR);
 
-    text->renderCentered("PROGRAMMING", VIEW_WIDTH / 2.f, 56.f, HEADER_COLOR);
-    text->renderCentered("JUN ZHE XIA", VIEW_WIDTH / 2.f, 70.f, HIGHLIGHT_COLOR);
-    text->renderCentered("DAIWEI CHEN", VIEW_WIDTH / 2.f, 82.f, HIGHLIGHT_COLOR);
+    text->renderCentered("PROGRAMMING", VIEW_WIDTH / 2.f, 48.f, HEADER_COLOR);
+    text->renderCentered("JUN ZHE XIA", VIEW_WIDTH / 2.f, 62.f, HIGHLIGHT_COLOR);
+    text->renderCentered("DAIWEI CHEN", VIEW_WIDTH / 2.f, 74.f, HIGHLIGHT_COLOR);
 
-    text->renderCentered("BASED ON", VIEW_WIDTH / 2.f, 112.f, HEADER_COLOR);
-    text->renderCentered("POCKET BOMBERMAN (HUDSON SOFT, 1998)", VIEW_WIDTH / 2.f, 126.f, HIGHLIGHT_COLOR);
+    text->renderCentered("BASED ON", VIEW_WIDTH / 2.f, 98.f, HEADER_COLOR);
+    text->renderCentered("POCKET BOMBERMAN (HUDSON SOFT, 1998)", VIEW_WIDTH / 2.f, 112.f, HIGHLIGHT_COLOR);
 
-    text->renderCentered("VIDEOJOCS - FIB - UPC", VIEW_WIDTH / 2.f, 160.f, NORMAL_COLOR);
-    text->renderCentered("CURS 2026/27", VIEW_WIDTH / 2.f, 172.f, NORMAL_COLOR);
+    text->renderCentered("SOUND", VIEW_WIDTH / 2.f, 136.f, HEADER_COLOR);
+    text->renderCentered("MUSIC: POCKET BOMBERMAN OST (KHINSIDER)", VIEW_WIDTH / 2.f, 150.f, HIGHLIGHT_COLOR);
+    text->renderCentered("SOUND EFFECTS: MADE WITH JSFXR", VIEW_WIDTH / 2.f, 162.f, HIGHLIGHT_COLOR);
+
+    text->renderCentered("VIDEOJOCS - FIB - UPC", VIEW_WIDTH / 2.f, 186.f, NORMAL_COLOR);
+    text->renderCentered("CURS 2026/27", VIEW_WIDTH / 2.f, 198.f, NORMAL_COLOR);
 
     text->renderCentered("PRESS ENTER TO GO BACK", VIEW_WIDTH / 2.f, 220.f, NORMAL_COLOR);
 }
