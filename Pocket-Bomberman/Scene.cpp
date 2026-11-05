@@ -47,6 +47,7 @@ namespace
 		int time = 180;
 		glm::ivec2 player = glm::ivec2(1);
 		vector<pair<Enemy::Type, glm::ivec2>> enemies;
+		vector<pair<glm::ivec2, ItemType>> itemDrops;
 		bool hasBoss = false;
 		glm::ivec2 boss = glm::ivec2(0);
 		glm::ivec2 door = glm::ivec2(0);
@@ -59,8 +60,10 @@ namespace
 			return false;
 
 		string line;
+		int lineNumber = 0;
 		while(getline(fin, line))
 		{
+			++lineNumber;
 			stringstream sstream(line);
 			string keyword;
 			sstream >> keyword;
@@ -83,6 +86,30 @@ namespace
 				else if(keyword == "CHASER")
 					type = Enemy::Type::CHASER;
 				info.enemies.push_back(make_pair(type, tile));
+			}
+			else if(keyword == "POWERUP")
+			{
+				string name;
+				if(!(sstream >> tile.x >> tile.y >> name))
+				{
+					cout << fileName << ":" << lineNumber << ": expected POWERUP x y TYPE" << endl;
+					return false;
+				}
+				ItemType type;
+				if(name == "BOMBUP")
+					type = ItemType::BombUp;
+				else if(name == "FIREUP")
+					type = ItemType::FireUp;
+				else if(name == "HEART")
+					type = ItemType::Heart;
+				else if(name == "SPEEDUP")
+					type = ItemType::SpeedUp;
+				else
+				{
+					cout << fileName << ":" << lineNumber << ": unknown POWERUP type " << name << endl;
+					return false;
+				}
+				info.itemDrops.push_back(make_pair(tile, type));
 			}
 			else if(keyword == "BOSS")
 			{
@@ -198,6 +225,19 @@ bool Scene::loadLevel(int level)
 	{
 		finished = true;
 		return false;
+	}
+
+	for(const auto &drop : info.itemDrops)
+	{
+		const glm::ivec2 &tile = drop.first;
+		if(map->getTileType(tile.x, tile.y) != TileType::DESTRUCTIBLE)
+		{
+			cout << levelFileName(level) << ": POWERUP at (" << tile.x << ", " << tile.y
+			     << ") must be on a destructible bush" << endl;
+			finished = true;
+			return false;
+		}
+		bombSystem.setItemDrop(tile, drop.second);
 	}
 
 	player.reset(new Player());
@@ -384,8 +424,8 @@ void Scene::update(int deltaTime)
 				changeState(State::VICTORY);
 				Audio::instance().playMusic(Music::VICTORY, false);
 			}
-			else
-				loadLevel(currentLevel + 1);
+			else if(!loadLevel(currentLevel + 1))
+				return;
 		}
 		break;
 
@@ -399,7 +439,8 @@ void Scene::update(int deltaTime)
 				Audio::instance().playMusic(Music::GAME_OVER, false);
 			}
 			else
-				loadLevel(currentLevel);
+				if(!loadLevel(currentLevel))
+					return;
 		}
 		break;
 

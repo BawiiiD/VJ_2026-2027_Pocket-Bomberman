@@ -2,7 +2,6 @@
 #define BOMB_SYSTEM_H
 
 #include <memory>
-#include <random>
 #include <vector>
 #include "Bomb.h"
 #include "Explosion.h"
@@ -17,6 +16,8 @@ class BombSystem
 public:
 	void init();
 	void clear();
+	// Fixed drops are registered again whenever a level is loaded.
+	void setItemDrop(const glm::ivec2 &tile, ItemType type);
 	void place(TileMap &map, const Player &player, Texture &atlas, ShaderProgram &program);
 	void update(int deltaTime, TileMap &map,
 	            const RayHazards &rays, int levelMs, Texture &atlas, ShaderProgram &program);
@@ -32,7 +33,12 @@ private:
 	void spawnItem(const glm::ivec2 &tile, const TileMap &map, Texture &atlas, ShaderProgram &program);
 
 	Texture explosionTexture;
-	std::mt19937 random{std::random_device()()};
+	struct ItemDrop
+	{
+		glm::ivec2 tile;
+		ItemType type;
+	};
+	std::vector<ItemDrop> itemDrops;
 	std::vector<std::unique_ptr<Bomb>> bombs;
 	std::vector<std::unique_ptr<Explosion>> explosions;
 	std::vector<std::unique_ptr<Item>> items;

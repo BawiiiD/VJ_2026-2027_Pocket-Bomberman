@@ -7,27 +7,27 @@
     "file.lastUsedOpenFilter": "全部文件 (*)",
     "fileStates": {
         "Map_3.tmx": {
-            "scale": 1.68,
+            "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 255.95238095238093,
-                "y": 216.96428571428572
+                "x": 209.75,
+                "y": 115.25
             }
         },
         "Map_4.tmx": {
             "scale": 1.68291015625,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 256.1039865374572,
-                "y": 128.05199326872858
+                "x": 256.4010909301921,
+                "y": 204.70492659432486
             }
         },
         "Map_5.tmx": {
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 130.33333333333334,
-                "y": 119.83333333333333
+                "x": 130.16666666666663,
+                "y": 119.83333333333331
             }
         },
         "Mapa.tsx": {
@@ -43,16 +43,16 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 250,
-                "y": 156.16666666666666
+                "x": 258.5,
+                "y": 116.83333333333331
             }
         },
         "Mapa_2.tmx": {
-            "scale": 1.5,
+            "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 50.666666666666686,
-                "y": 256.3333333333333
+                "x": 89.75,
+                "y": 401.25
             }
         },
         "tiled/Mapa.tsx": {
@@ -67,8 +67,10 @@
             }
         }
     },
+    "last.exportedFilePath": "C:/Users/DC/Desktop/Bawiii/VJ_2026-2027_Pocket-Bomberman/Pocket-Bomberman/levels",
     "last.externalTilesetPath": "C:/Users/bawi1/Desktop/VJ/VJ_2026-2027_Pocket-Bomberman/resource/tiled",
     "last.imagePath": "C:/Users/bawi1/Desktop/VJ/VJ_2026-2027_Pocket-Bomberman/resource/tiled",
+    "map.lastUsedExportFilter": "全部文件 (*)",
     "openFiles": [
         "Mapa_1.tmx",
         "Mapa_2.tmx",

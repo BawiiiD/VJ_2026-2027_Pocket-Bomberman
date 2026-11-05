@@ -1,9 +1,14 @@
 # Level description. Coordinates are in tiles, counted from the top-left
-# corner of the used part of the Tiled map (empty borders are cropped).
-# Enemy/player coordinates give the tile they stand in (floor is just below).
+# corner of the used part of the Tiled map
+# Enemy/player coordinates give the tile they stand in (floor below)
+# Fixed bush drops: POWERUP x y TYPE (BOMBUP, FIREUP, HEART, SPEEDUP)
+# Unlisted bushes drop nothing
 MAP levels/map01.tmx
 TIME 150
-PLAYER 4 13
-WALKER 11 13
-WALKER 4 3
-HOPPER 11 10
+PLAYER 2 13
+WALKER 11 10
+WALKER 12 2
+WALKER 3 2
+POWERUP 14 13 BOMBUP
+POWERUP 5 11 SPEEDUP
+POWERUP 1 1 FIREUP

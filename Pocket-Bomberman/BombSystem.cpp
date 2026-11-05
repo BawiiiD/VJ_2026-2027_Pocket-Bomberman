@@ -1,18 +1,10 @@
 #include <algorithm>
 #include <iostream>
-#include <iterator>
 #include "BombSystem.h"
 #include "Audio.h"
 #include "Gameplay.h"
 #include "Player.h"
 #include "RayHazards.h"
-
-namespace
-{
-	// Chance that a destroyed bush leaves an item (in %) and weight of each item
-	constexpr int ITEM_CHANCE = 40;
-	const double ITEM_WEIGHTS[] = { 3., 3., 1., 2. };   // BombUp, FireUp, Heart, SpeedUp
-}
 
 void BombSystem::init()
 {
@@ -29,6 +21,18 @@ void BombSystem::clear()
 	bombs.clear();
 	explosions.clear();
 	items.clear();
+	itemDrops.clear();
+}
+
+void BombSystem::setItemDrop(const glm::ivec2 &tile, ItemType type)
+{
+	for(auto &drop : itemDrops)
+		if(drop.tile == tile)
+		{
+			drop.type = type;
+			return;
+		}
+	itemDrops.push_back({ tile, type });
 }
 
 void BombSystem::place(TileMap &map, const Player &player, Texture &atlas, ShaderProgram &program)
@@ -156,12 +160,13 @@ void BombSystem::explode(const Bomb &bomb, TileMap &map, Texture &atlas, ShaderP
 
 void BombSystem::spawnItem(const glm::ivec2 &tile, const TileMap &map, Texture &atlas, ShaderProgram &program)
 {
-	std::uniform_int_distribution<int> chance(0, 99);
-	if(chance(random) >= ITEM_CHANCE)
+	auto drop = std::find_if(itemDrops.begin(), itemDrops.end(),
+		[&tile](const ItemDrop &candidate) { return candidate.tile == tile; });
+	if(drop == itemDrops.end())
 		return;
 
-	std::discrete_distribution<int> itemType(std::begin(ITEM_WEIGHTS), std::end(ITEM_WEIGHTS));
-	items.emplace_back(new Item(tile, ItemType(itemType(random)), map.getTileSize(), atlas, program));
+	items.emplace_back(new Item(tile, drop->type, map.getTileSize(), atlas, program));
+	itemDrops.erase(drop);
 }
 
 void BombSystem::removeFinishedExplosions()
