@@ -38,10 +38,11 @@ namespace
 	constexpr int HURRY_UP_MS = 30000;
 
 	// 8x8 HUD icons in images/sprites.png (pixel coordinates)
-	const glm::ivec2 ICON_LIVES(0, 16);
+	const glm::ivec2 ICON_LIVES(0, 24);
+	const glm::ivec2 ICON_SPEED(0, 16);
+	const glm::ivec2 ICON_TIME(16, 24);
 	const glm::ivec2 ICON_BOMB(8, 16);
 	const glm::ivec2 ICON_HEART(16, 16);
-	const glm::ivec2 ICON_TIME(8, 24);
 	const glm::ivec2 ICON_FIRE(0, 48);
 
 	// Contents of a levels/levelXX.txt file
@@ -316,7 +317,7 @@ void Scene::changeState(State newState)
 
 void Scene::keyPressed(int key)
 {
-	if(!map || finished)
+	if(finished)
 		return;
 
 	// Skip the end messages
@@ -357,7 +358,7 @@ void Scene::keyPressed(int key)
 
 void Scene::update(int deltaTime)
 {
-	if(!map || finished)
+	if(finished)
 		return;
 
 	stateMs += deltaTime;
@@ -386,7 +387,7 @@ void Scene::update(int deltaTime)
 		changeState(State::LEVEL_CLEAR);
 		Audio::instance().playMusic(Music::CLEAR, false);
 	}
-	// Remove the entities that have finished
+	// Remove finished entities before rendering and the next update.
 	enemies.erase(remove_if(enemies.begin(), enemies.end(),
 		[](const std::unique_ptr<Enemy> &enemy) { return enemy->isDead(); }), enemies.end());
 	projectiles.erase(remove_if(projectiles.begin(), projectiles.end(),
@@ -472,8 +473,7 @@ void Scene::updateDoor()
 		hasDoor = true;
 	}
 
-	if(doorSprite)
-		doorSprite->setPosition(glm::vec2(doorTile * map->getTileSize()));
+	doorSprite->setPosition(glm::vec2(doorTile * map->getTileSize()));
 
 	// Sound when the door opens (all the enemies defeated)
 	bool open = hasDoor && doorOpen();
@@ -654,11 +654,11 @@ void Scene::renderHUD()
 	drawSmallIcon(ICON_FIRE, 102.f);
 	text->render(number(stats.fireRange), glm::vec2(112.f, textY), dark);
 
-	// Heart and speed items
+	// Speed and heart item
+	drawSmallIcon(ICON_SPEED, 128.f);
+	text->render(number(stats.speedLevel), glm::vec2(138.f, textY), dark);
 	if(stats.heart)
-		drawSmallIcon(ICON_HEART, 128.f);
-	if(stats.speedLevel > 0)
-		text->render(">" + number(stats.speedLevel), glm::vec2(140.f, textY), dark);
+		drawSmallIcon(ICON_HEART, 154.f);
 
 	// Enemies left
 	icon->setFrame(atlasCell(0, 5));

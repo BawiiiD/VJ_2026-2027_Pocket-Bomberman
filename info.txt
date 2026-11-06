@@ -95,8 +95,8 @@ Controles
 
 Menús
     ARRIBA / ABAJO        Elegir una opción
-    ENTER                 Confirmar (ENTER, ESPACIO o ESC vuelven atrás desde
-                          las pantallas de instrucciones y créditos)
+    ENTER, Z o ESPACIO     Confirmar (ENTER, Z, ESPACIO o ESC vuelven atrás
+                          desde las pantallas de instrucciones y créditos)
     ENTER o ESPACIO       Saltar la intro y las pantallas de game over y
                           victoria
 

@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cmath>
 
 #include "Boss.h"
@@ -84,13 +83,9 @@ Projectile::Projectile(Kind kind,
 
 void Projectile::update(int deltaTime, const TileMap &map)
 {
-    if (!alive)
-        return;
-
     sprite->update(deltaTime);
 
-    // Keep movement stable on long frames.
-    const float dt = std::min(deltaTime / 1000.f, 0.05f);
+    const float dt = deltaTime / 1000.f;
     lifeMs -= deltaTime;
 
     if (kind == Kind::SEED)
@@ -122,8 +117,7 @@ void Projectile::update(int deltaTime, const TileMap &map)
 
 void Projectile::render()
 {
-    if (alive)
-        sprite->render();
+    sprite->render();
 }
 
 void Projectile::destroy()
@@ -220,7 +214,7 @@ void Boss::update(int deltaTime,
 
     if (poseMs <= 0)
     {
-        const float dt = std::min(deltaTime / 1000.f, 0.05f);
+        const float dt = deltaTime / 1000.f;
         const float speed = health <= 2 ? BERSERK_PATROL_SPEED : PATROL_SPEED;
         glm::vec2 body = position + BOSS_HITBOX_OFFSET;
         const float step = moveDirection * speed * dt;

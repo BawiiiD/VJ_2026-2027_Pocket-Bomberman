@@ -28,9 +28,9 @@ public:
 
     void update(int deltaTime);
     void render() const;
-    void free();
 
     void setNumberAnimations(int nAnimations);
+    // Animation IDs must be in range; set a positive speed and add frames before playback.
     void setAnimationSpeed(int animId, int keyframesPerSec);
     void addKeyframe(int animId, const glm::vec2 &frame);
 

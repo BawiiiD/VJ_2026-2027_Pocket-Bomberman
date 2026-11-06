@@ -27,6 +27,7 @@ public:
     void update(int deltaTime);
     void render();
 
+    // Call init and setTileMap before placing or updating the player.
     void setTileMap(TileMap *tileMap);
     // Places the player standing in the given tile
     void setTile(const glm::ivec2 &tile);

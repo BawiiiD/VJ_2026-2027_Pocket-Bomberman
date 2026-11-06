@@ -17,7 +17,7 @@ void CollisionSystem::update(bool playing, Player &player, const std::vector<std
 	for(const auto &explosion : explosions)
 	{
 		for(auto &enemy : enemies)
-			if(!enemy->isDying() && explosion->hits(enemy->getBounds()))
+			if(explosion->hits(enemy->getBounds()))
 				enemy->kill();
 		if(boss && explosion->hits(boss->getBounds()))
 			boss->hit();

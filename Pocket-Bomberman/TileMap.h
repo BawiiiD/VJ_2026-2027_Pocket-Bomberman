@@ -67,7 +67,7 @@ public:
 	void placeDoor(int x, int y);
 	bool findDoor(glm::ivec2 &tile) const;
 
-	// Bombs block the tile they are in
+	// Bombs block their tile; the bomb system supplies in-bounds coordinates.
 	void setBlocked(int x, int y, bool blocked);
 
 	// Access to the tilesheet so that other entities can draw tiles (the door)

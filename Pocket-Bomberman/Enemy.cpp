@@ -115,9 +115,6 @@ void Enemy::update(int deltaTime, const glm::vec2 &playerCenter)
 {
     sprite->update(deltaTime);
 
-    if (state == DEAD)
-        return;
-
     if (state == DYING)
     {
         dyingMs -= deltaTime;
@@ -126,7 +123,7 @@ void Enemy::update(int deltaTime, const glm::vec2 &playerCenter)
         return;
     }
 
-    const float dt = std::min(deltaTime / 1000.f, 0.05f);
+    const float dt = deltaTime / 1000.f;
 
     think(dt, playerCenter);
 
@@ -151,9 +148,6 @@ void Enemy::update(int deltaTime, const glm::vec2 &playerCenter)
 
 void Enemy::render()
 {
-    if (state == DEAD)
-        return;
-
     // Blink at the end of the death animation
     if (state == DYING && dyingMs < DYING_MS / 2 && (dyingMs / 60) % 2 == 0)
         return;

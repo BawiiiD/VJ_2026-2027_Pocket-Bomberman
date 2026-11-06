@@ -175,7 +175,7 @@ bool Intro::isFinished() const
 
 void Intro::render()
 {
-    if (finished || !picture)
+    if (finished)
         return;
 
     glm::mat4 projection = glm::ortho(0.f, float(VIEW_WIDTH), float(VIEW_HEIGHT), 0.f);
@@ -192,7 +192,6 @@ void Intro::render()
         brightness = std::min(brightness, float(shotMs) / FADE_MS);
     if (info.fadeOut)
         brightness = std::min(brightness, float(info.durationMs - shotMs) / FADE_MS);
-    brightness = glm::clamp(brightness, 0.f, 1.f);
     program->setUniform4f("color", brightness, brightness, brightness, 1.f);
 
     // The sprites can't go out of the picture (the stones fly away)

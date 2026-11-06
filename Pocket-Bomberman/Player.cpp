@@ -115,9 +115,6 @@ void Player::init(Texture &atlas, ShaderProgram &shaderProgram)
 
 void Player::update(int deltaTime)
 {
-    if (!sprite || map == nullptr)
-        return;
-
     sprite->update(deltaTime);
 
     if (state == DEAD)
@@ -134,8 +131,7 @@ void Player::update(int deltaTime)
     if (invulnerableMs > 0)
         invulnerableMs -= deltaTime;
 
-    // Limit the delta time to avoid large jumps in physics calculations
-    const float dt = std::min(deltaTime / 1000.f, 0.05f);
+    const float dt = deltaTime / 1000.f;
 
     bool walking = false;
     const Game &game = Game::instance();
@@ -211,9 +207,6 @@ void Player::update(int deltaTime)
 
 void Player::render()
 {
-    if (!sprite)
-        return;
-
     // Blink while invulnerable
     if (invulnerableMs > 0 && (invulnerableMs / 80) % 2 == 0)
         return;
@@ -228,7 +221,7 @@ void Player::setTileMap(TileMap *tileMap)
 
 void Player::setTile(const glm::ivec2 &tile)
 {
-    const float tileSize = float(map != nullptr ? map->getTileSize() : 16);
+    const float tileSize = float(map->getTileSize());
 
     // Horizontally centered in the tile, feet on the floor of the tile
     posPlayer = glm::vec2(
@@ -244,11 +237,8 @@ void Player::setTile(const glm::ivec2 &tile)
     facingRight = true;
     state = NORMAL;
 
-    if (sprite)
-    {
-        sprite->changeAnimation(STAND);
-        sprite->setFlipX(facingRight);
-    }
+    sprite->changeAnimation(STAND);
+    sprite->setFlipX(facingRight);
 
     updateSpritePosition();
 }
@@ -265,9 +255,6 @@ glm::vec4 Player::getBounds() const
 
 glm::ivec2 Player::getTile() const
 {
-    if (map == nullptr)
-        return glm::ivec2(0);
-
     return map->toTile(getCenter());
 }
 
@@ -381,9 +368,6 @@ void Player::updateAnimation(bool walking)
 
 void Player::updateSpritePosition()
 {
-    if (!sprite)
-        return;
-
     // Rounded to whole pixels so that the pixel art does not shimmer
     sprite->setPosition(glm::round(posPlayer - HITBOX_OFFSET));
 }

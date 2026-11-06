@@ -1,19 +1,13 @@
 #include <iostream>
-
-#define MA_NO_ENCODING
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
-
 #include "Audio.h"
 
 namespace
 {
-    // Copies of each effect, so that the same sound can play several times at once
-    constexpr int VOICES = 4;
-    // The same effect is not started twice in less than this time (chain explosions...)
-    constexpr ma_uint64 MIN_REPEAT_MS = 40;
-
-    constexpr float MUSIC_VOLUME = 0.45f;
+	constexpr int VOICES = 4; // number of simultaneous voices for each sound effect
+	constexpr ma_uint64 MIN_REPEAT_MS = 40; // minimum time between same sound effect
+	constexpr float MUSIC_VOLUME = 0.45f; // music volume
 
     struct SoundInfo
     {
@@ -21,7 +15,6 @@ namespace
         float volume;
     };
 
-    // Same order as the Sound enum
     const SoundInfo SOUNDS[] =
     {
         { "sounds/bomb_place.wav", 0.8f },
@@ -41,10 +34,7 @@ namespace
         { "sounds/menu_move.wav", 0.6f },
         { "sounds/menu_select.wav", 0.7f }
     };
-    static_assert(sizeof(SOUNDS) / sizeof(SOUNDS[0]) == int(Sound::COUNT),
-                  "Every Sound needs a file");
 
-    // Same order as the Music enum
     const char *MUSIC_FILES[] =
     {
         nullptr,
@@ -66,7 +56,6 @@ struct Audio::Impl
 {
     struct Effect
     {
-        bool loaded = false;
         ma_sound voices[VOICES];
         int voiceCount = 0;
         int nextVoice = 0;
@@ -126,26 +115,22 @@ void Audio::init()
 
         for (int v = 0; v < effect.voiceCount; ++v)
             ma_sound_set_volume(&effect.voices[v], SOUNDS[i].volume);
-
-        effect.loaded = true;
     }
 }
 
 void Audio::shutdown()
 {
-    if (!impl || !impl->engineReady)
+    if (!impl->engineReady)
         return;
 
     stopMusic();
 
     for (Impl::Effect &effect : impl->effects)
     {
-        if (!effect.loaded)
-            continue;
         // Copies first, the original sound owns the decoded data
         for (int v = effect.voiceCount - 1; v >= 0; --v)
             ma_sound_uninit(&effect.voices[v]);
-        effect.loaded = false;
+        effect.voiceCount = 0;
     }
 
     ma_engine_uninit(&impl->engine);
@@ -154,11 +139,11 @@ void Audio::shutdown()
 
 void Audio::playSound(Sound sound)
 {
-    if (!impl->engineReady || sound == Sound::COUNT)
+    if (!impl->engineReady)
         return;
 
     Impl::Effect &effect = impl->effects[int(sound)];
-    if (!effect.loaded)
+    if (effect.voiceCount == 0)
         return;
 
     const ma_uint64 now = ma_engine_get_time_in_milliseconds(&impl->engine);

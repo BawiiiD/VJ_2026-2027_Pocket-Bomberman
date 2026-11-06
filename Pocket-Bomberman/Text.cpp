@@ -137,9 +137,6 @@ void Text::render(const std::string &str,
                   const glm::vec2 &pos,
                   const glm::vec4 &color)
 {
-    if (!sprite)
-        return;
-
     const float advance = float(cellSize * ADVANCE) / CELL;
 
     program->setUniform4f("color", color.r, color.g, color.b, color.a);

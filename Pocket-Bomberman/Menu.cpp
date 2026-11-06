@@ -87,8 +87,7 @@ void Menu::reset()
 void Menu::update(int deltaTime)
 {
     elapsedMs += deltaTime;
-    if (bomberman)
-        bomberman->update(deltaTime);
+    bomberman->update(deltaTime);
 }
 
 Menu::Action Menu::keyPressed(int key)
@@ -96,7 +95,7 @@ Menu::Action Menu::keyPressed(int key)
     if (screen != Screen::MAIN)
     {
         // Any of these keys go back to the main screen
-        if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_ENTER || key == GLFW_KEY_SPACE)
+        if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_ENTER || key == GLFW_KEY_SPACE || key == GLFW_KEY_Z)
         {
             screen = Screen::MAIN;
             Audio::instance().playSound(Sound::MENU_SELECT);
@@ -119,6 +118,7 @@ Menu::Action Menu::keyPressed(int key)
         return Action::QUIT;
     case GLFW_KEY_ENTER:
     case GLFW_KEY_SPACE:
+    case GLFW_KEY_Z:
         Audio::instance().playSound(Sound::MENU_SELECT);
         switch (selected)
         {
@@ -210,7 +210,7 @@ void Menu::renderMain()
             renderIcon(0, 2, glm::vec2(VIEW_WIDTH / 2.f - text->width(OPTIONS[i]) / 2.f - 22.f, y - 4.f));
     }
 
-    text->renderCentered("UP/DOWN + ENTER", VIEW_WIDTH / 2.f, 220.f, MAIN_TEXT_COLOR);
+    text->renderCentered("UP/DOWN + ENTER or Z", VIEW_WIDTH / 2.f, 220.f, MAIN_TEXT_COLOR);
 }
 
 void Menu::renderInstructions()
@@ -244,7 +244,7 @@ void Menu::renderInstructions()
     y += 46.f;
 
     line("CHEATS:", HEADER_COLOR);
-    line("G GOD MODE   K KILL ENEMIES   1-5 GO TO LEVEL", NORMAL_COLOR);
+    line("G: GOD MODE   K: KILL ENEMIES   1-5: GO TO LEVEL", NORMAL_COLOR);
 }
 
 void Menu::renderCredits()
@@ -265,5 +265,5 @@ void Menu::renderCredits()
     text->renderCentered("VIDEOJOCS - FIB - UPC", VIEW_WIDTH / 2.f, 186.f, NORMAL_COLOR);
     text->renderCentered("CURS 2026/27", VIEW_WIDTH / 2.f, 198.f, NORMAL_COLOR);
 
-    text->renderCentered("PRESS ENTER TO GO BACK", VIEW_WIDTH / 2.f, 220.f, NORMAL_COLOR);
+    text->renderCentered("PRESS ENTER/Z TO GO BACK", VIEW_WIDTH / 2.f, 220.f, NORMAL_COLOR);
 }

@@ -89,16 +89,9 @@ void Sprite::update(int deltaTime)
     // If there is no current animation or the animation has ended, do nothing
     if (currentAnimation < 0 || animationEnded)
         return;
-    // If the current animation has no keyframes, do nothing
-    if (animations[currentAnimation].keyframeDispl.empty())
-        return;
-
-    const float millisecondsPerFrame =
-        animations[currentAnimation].millisecsPerKeyframe;
-
-    // Animations without a speed never advance
-    if (millisecondsPerFrame <= 0.f)
-        return;
+    const AnimKeyframes &animation = animations[currentAnimation];
+    const float millisecondsPerFrame = animation.millisecsPerKeyframe;
+    const int numberOfFrames = int(animation.keyframeDispl.size());
 
     timeAnimation += deltaTime;
 
@@ -108,12 +101,6 @@ void Sprite::update(int deltaTime)
         timeAnimation -= millisecondsPerFrame;
         ++currentKeyframe;
 
-        const int numberOfFrames =
-            static_cast<int>(
-                animations[currentAnimation]
-                    .keyframeDispl.size()
-            );
-        
         // If the current keyframe exceeds the number of frames in the animation, 
         // handle looping or ending the animation
         if (currentKeyframe >= numberOfFrames)
@@ -133,9 +120,7 @@ void Sprite::update(int deltaTime)
         }
 
         // Update the texture coordinate displacement based on the current keyframe
-        texCoordDispl =
-            animations[currentAnimation]
-                .keyframeDispl[currentKeyframe];
+        texCoordDispl = animation.keyframeDispl[currentKeyframe];
     }
 }
 
@@ -195,28 +180,16 @@ void Sprite::render() const
     glDisable(GL_TEXTURE_2D);
 }
 
-void Sprite::free()
-{
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
-}
-
 // Set the number of animations for the sprite and initialize the animation data structures
 void Sprite::setNumberAnimations(int nAnimations)
 {
-    animations.clear();
-    animations.resize(nAnimations);
-
-    animationLoop.clear();
-    animationLoop.resize(nAnimations, true);
+    animations.assign(nAnimations, AnimKeyframes());
+    animationLoop.assign(nAnimations, true);
 }
 
 // Set the speed of a specific animation in keyframes per second
 void Sprite::setAnimationSpeed(int animId, int keyframesPerSec)
 {
-    if (animId < 0 || animId >= int(animations.size()))
-        return;
-
     animations[animId].millisecsPerKeyframe =
         1000.f / float(keyframesPerSec);
 }
@@ -225,18 +198,12 @@ void Sprite::setAnimationSpeed(int animId, int keyframesPerSec)
 void Sprite::addKeyframe(int animId,
                          const glm::vec2 &displacement)
 {
-    if (animId < 0 || animId >= int(animations.size()))
-        return;
-
     animations[animId].keyframeDispl.push_back(displacement);
 }
 
 // Set whether a specific animation should loop or not
 void Sprite::setAnimationLoop(int animId, bool loop)
 {
-    if (animId < 0 || animId >= int(animationLoop.size()))
-        return;
-
     animationLoop[animId] = loop;
 }
 
@@ -249,12 +216,6 @@ bool Sprite::animationFinished() const
 // Change the current animation to a new one, resetting the keyframe and time counters
 void Sprite::changeAnimation(int animId)
 {
-    if (animId < 0 || animId >= int(animations.size()))
-        return;
-
-    if (animations[animId].keyframeDispl.empty())
-        return;
-
     currentAnimation = animId;
     currentKeyframe = 0;
     timeAnimation = 0.f;

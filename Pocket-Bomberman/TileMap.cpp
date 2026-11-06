@@ -29,9 +29,6 @@ namespace
 	constexpr int RIGHT_EMITTER_TILE = 106;
 	const int RAY_TILES[] = { 77, 78 };
 
-	// The blue fence tiles are solid; only the background is passable.
-	const int PASSABLE_TILES[] = { BACKGROUND_TILE };
-
 	// Tiled stores flip flags in the highest bits of each tile id
 	constexpr unsigned long FLIPPED_HORIZONTALLY = 0x80000000UL;
 	constexpr unsigned long TILE_ID_MASK = 0x0FFFFFFFUL;
@@ -154,9 +151,6 @@ void TileMap::free()
 bool TileMap::loadLevel(const string &levelFile)
 {
 	string text = readFile(levelFile);
-	if(text.empty())
-		return false;
-
 	size_t mapTag = text.find("<map ");
 	if(mapTag == string::npos)
 		return false;
@@ -377,17 +371,15 @@ TileType TileMap::getTileType(int x, int y) const
 		return TileType::SOLID;
 
 	int tile = map[y * mapSize.x + x];
-	if(tile < 0)
-		return TileType::SOLID;
 	if(tile == BUSH_TILE)
 		return TileType::DESTRUCTIBLE;
 	if(tile == GATE_CONTROL_TILE)
 		return TileType::GATE_CONTROL;
 	if(tile == DOOR_TILE)
 		return TileType::DOOR;
-	for(int passable : PASSABLE_TILES)
-		if(tile == passable)
-			return TileType::EMPTY;
+	// The blue fence tiles are solid; only the background is passable.
+	if(tile == BACKGROUND_TILE)
+		return TileType::EMPTY;
 
 	return TileType::SOLID;
 }
@@ -533,6 +525,5 @@ bool TileMap::findDoor(glm::ivec2 &tile) const
 
 void TileMap::setBlocked(int x, int y, bool value)
 {
-	if(inside(x, y))
-		blocked[y * mapSize.x + x] = value;
+	blocked[y * mapSize.x + x] = value;
 }

@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include "Explosion.h"
 #include "Gameplay.h"
 
@@ -53,7 +51,7 @@ glm::vec2 Explosion::pieceFrame(Piece piece, int phase) const
 void Explosion::render()
 {
     // The fire is animated in 7 steps, each lasting DURATION_MS / PHASE_COUNT milliseconds
-    const int step = std::min(PHASE_COUNT - 1, elapsedMs * PHASE_COUNT / DURATION_MS);
+    const int step = elapsedMs * PHASE_COUNT / DURATION_MS;
     const int phase = PHASE_SEQUENCE[step];
 
     for (const Cell &cell : cells)
