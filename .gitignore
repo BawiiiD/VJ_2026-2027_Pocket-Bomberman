@@ -1,6 +1,0 @@
-.vs
-[Dd]ebug/
-[Rr]elease/
-
-# The libraries are needed to build, even if their folders are called Debug/Release
-!libs/**
