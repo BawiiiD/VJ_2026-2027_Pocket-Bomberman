@@ -5,6 +5,7 @@
 
 namespace
 {
+    // The item icons are in row 4 of the atlas, in the order of ItemType
     constexpr int ITEM_ROW = 4;
 }
 
@@ -24,6 +25,7 @@ Item::Item(glm::ivec2 tile,
         &atlas,
         &program
     ));
+    // Items don't animate, so a fixed frame is enough
     sprite->setFrame(atlasCell(static_cast<int>(type), ITEM_ROW));
     sprite->setPosition(glm::vec2(tile * tileSize));
 }
@@ -32,7 +34,8 @@ void Item::update(int deltaTime)
 {
     elapsedMs += deltaTime;
 
-    // Items float softly up and down so that they are easy to spot
+    // Items float softly up and down (1.5 pixels) so that they are easy to spot.
+    // We round the offset so the sprite always lands on whole pixels
     const float offset = std::round(std::sin(elapsedMs / 200.f) * 1.5f);
     sprite->setPosition(glm::vec2(tile * tileSize) + glm::vec2(0.f, offset));
 }

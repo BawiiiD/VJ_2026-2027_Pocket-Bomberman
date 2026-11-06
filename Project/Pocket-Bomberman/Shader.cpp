@@ -29,10 +29,12 @@ void Shader::initFromSource(const ShaderType type, const string &source)
 	}
 	if(shaderId == 0)
 		return;
+	// Give OpenGL the source code and let the driver compile it
 	glShaderSource(shaderId, 1, &sourcePtr, NULL);
 	glCompileShader(shaderId);
 	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
 	compiled = (status == GL_TRUE);
+	// We keep the messages even if it compiled, there can be warnings
 	glGetShaderInfoLog(shaderId, 512, NULL, buffer);
 	errorLog.assign(buffer);
 }
@@ -77,6 +79,7 @@ bool Shader::loadShaderSource(const string &filename, string &shaderSource)
 	fin.open(filename.c_str());
 	if(!fin.is_open())
 		return false;
+	// Reads the whole file into the string in one go
 	shaderSource.assign(istreambuf_iterator<char>(fin), istreambuf_iterator<char>());
 
 	return true;

@@ -4,6 +4,9 @@
 #include "Audio.h"
 
 
+// The constructor can't touch OpenGL yet (the window doesn't exist when the
+// singleton is created), so it only leaves everything in a safe state.
+// The real setup happens in init().
 Game::Game()
     : bPlay(false),
       state(GameState::MENU)
@@ -21,13 +24,13 @@ void Game::init()
 	// All the characters, items and effects are in this image
 	if(!atlas.loadFromFile("images/sprites.png", TEXTURE_PIXEL_FORMAT_RGBA))
 		cout << "Could not load images/sprites.png" << endl;
-	// Don't repeat the texture at the edges
+	// If a sprite is drawn right at the edge, don't pick pixels from the other side
 	atlas.setWrapS(GL_CLAMP_TO_EDGE);
 	atlas.setWrapT(GL_CLAMP_TO_EDGE);
-	// For pixel art
+	// NEAREST keeps every pixel as a sharp square instead of blurring it (pixel art)
 	atlas.setMinFilter(GL_NEAREST);
 	atlas.setMagFilter(GL_NEAREST);
-	// Same font, different sizes
+	// Same font, two sizes: normal text and titles
 	text.init(texProgram, 8);
 	bigText.init(texProgram, 16);
 
@@ -37,14 +40,16 @@ void Game::init()
 	menu.init(texProgram, atlas, text, bigText);
 	scene.init(texProgram, atlas, text, bigText);
 
-	// Starts the menu music, which also plays during the intro
+	// Starts the menu music, which also plays during the intro.
+	// If the intro couldn't load, we go straight to the menu
 	menu.reset();
 	state = intro.isFinished() ? GameState::MENU : GameState::INTRO;
 }
 
 bool Game::update(int deltaTime)
 {
-	// Avoid huge steps (for example while the window is being dragged)
+	// If the window is dragged the game freezes for a while, and the next frame
+	// would get a huge deltaTime (things would jump through walls). We cap it at 50 ms
 	deltaTime = std::min(deltaTime, 50);
 
 	switch(state)
@@ -59,6 +64,7 @@ bool Game::update(int deltaTime)
 		break;
 	case GameState::PLAYING:
 		scene.update(deltaTime);
+		// The scene says it's finished after game over or after the victory screen
 		if(scene.isFinished())
 		{
 			menu.reset();
@@ -72,7 +78,7 @@ bool Game::update(int deltaTime)
 
 void Game::render()
 {
-	// Reset the viewport every frame
+	// The scene changes the viewport to draw the HUD, so we reset it every frame
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -84,8 +90,12 @@ void Game::render()
 		scene.render();
 }
 
+// keyPressed is called once per press, so it's where we handle the actions
+// that happen once (drop a bomb, choose a menu option...). For movement,
+// Player asks getKey() every frame instead.
 void Game::keyPressed(int key)
 {
+	// GLFW sends -1 for unknown keys, and that would be out of the array
 	if(key < 0 || key > GLFW_KEY_LAST)
 		return;
 	keys[key] = true;
@@ -103,10 +113,12 @@ void Game::keyPressed(int key)
 
 	if(state == GameState::MENU)
 	{
+		// The menu tells us what the player picked
 		switch(menu.keyPressed(key))
 		{
 		case Menu::Action::PLAY:
 			scene.startGame();
+			// startGame() leaves the scene "finished" if the first level failed to load
 			if(!scene.isFinished())
 				state = GameState::PLAYING;
 			break;
@@ -136,6 +148,7 @@ void Game::keyReleased(int key)
 		keys[key] = false;
 }
 
+// The game doesn't use the mouse, but the callbacks are still connected in main.cpp
 void Game::mouseMove(int x, int y)
 {
 }
@@ -155,7 +168,9 @@ bool Game::getKey(int key) const
 
 void Game::fillRect(const glm::vec4 &rect, const glm::vec3 &color) const
 {
-	// Scissor coordinates are in window pixels, with the origin at the bottom-left corner
+	// Trick to paint a rectangle without a shader: limit the drawing area with the
+	// scissor and clear it with the color we want. The scissor works in window
+	// pixels with (0,0) at the bottom-left, so we scale and flip the y
 	glEnable(GL_SCISSOR_TEST);
 	glScissor(int(rect.x * PIXEL_SCALE),
 	          int((VIEW_HEIGHT - rect.y - rect.w) * PIXEL_SCALE),
@@ -163,13 +178,15 @@ void Game::fillRect(const glm::vec4 &rect, const glm::vec3 &color) const
 	          int(rect.w * PIXEL_SCALE));
 	glClearColor(color.r, color.g, color.b, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
+	// Leave the clear color and the scissor as they were
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glDisable(GL_SCISSOR_TEST);
 }
 
 void Game::shutdown()
 {
-	// OpenGL objects have to be released while the context still exists
+	// OpenGL objects have to be released while the context still exists, so we
+	// can't leave it to the destructors (they run after main() closes the window)
 	scene.shutdown();
 	menu.shutdown();
 	intro.shutdown();
@@ -179,6 +196,9 @@ void Game::shutdown()
 	Audio::instance().shutdown();
 }
 
+// Every sprite, tile and letter of the game is drawn with this same program:
+// texture.vert places the quad on the screen and texture.frag picks its color
+// from the texture.
 void Game::initShaders()
 {
 	Shader vShader, fShader;
@@ -205,6 +225,7 @@ void Game::initShaders()
 		cout << "" << texProgram.log() << endl << endl;
 	}
 	texProgram.bindFragmentOutput("outColor");
+	// Once linked into the program, the separate shaders aren't needed anymore
 	vShader.free();
 	fShader.free();
 }

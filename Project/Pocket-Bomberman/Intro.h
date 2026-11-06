@@ -8,7 +8,9 @@
 
 // Story shown when the game starts (images/intro.png). It is a list of shots,
 // each one with its picture, its animated sprites and two lines of text.
-// Any key skips it.
+// ENTER, SPACE or ESC skip it (Game handles those keys).
+// It works like a little movie: we only keep which shot we're in and how long
+// we've been in it, and every animation is calculated from that time.
 class Intro
 {
 public:

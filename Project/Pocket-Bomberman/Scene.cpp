@@ -18,6 +18,9 @@ namespace
 	// Height of the bar with the game information, at the bottom of the screen
 	constexpr int HUD_HEIGHT = 16;
 	constexpr int WORLD_VIEW_HEIGHT = VIEW_HEIGHT - HUD_HEIGHT;
+	// The world is drawn 1.5 times bigger than the menus, so we see about
+	// 213x149 game pixels of the level. 1.5 * 2 = 3 window pixels per game pixel,
+	// a whole number, so the pixel art stays sharp
 	constexpr float CAMERA_ZOOM = 1.5f;
 	constexpr float CAMERA_WIDTH = VIEW_WIDTH / CAMERA_ZOOM;
 	constexpr float CAMERA_HEIGHT = WORLD_VIEW_HEIGHT / CAMERA_ZOOM;
@@ -45,7 +48,8 @@ namespace
 	const glm::ivec2 ICON_HEART(16, 16);
 	const glm::ivec2 ICON_FIRE(0, 48);
 
-	// Contents of a levels/levelXX.txt file
+	// Contents of a levels/levelXX.txt file. We read it into this struct first,
+	// and loadLevel then creates the real objects from it
 	struct LevelInfo
 	{
 		string mapFile;
@@ -58,6 +62,9 @@ namespace
 		glm::ivec2 door = glm::ivec2(0);
 	};
 
+	// Each line is a keyword and its values, like "WALKER 12 13". Empty lines
+	// and lines starting with # are ignored. stringstream lets us read a line
+	// with >> as if it were cin
 	bool loadLevelInfo(const string &fileName, LevelInfo &info)
 	{
 		ifstream fin(fileName.c_str());
@@ -94,6 +101,8 @@ namespace
 			}
 			else if(keyword == "POWERUP")
 			{
+				// A wrong POWERUP line stops the level from loading, so a typo
+				// in the file is found right away instead of silently losing the item
 				string name;
 				if(!(sstream >> tile.x >> tile.y >> name))
 				{
@@ -135,6 +144,7 @@ namespace
 		return name.str();
 	}
 
+	// Each world has its own music, and the boss level has the boss theme
 	Music levelMusic(int level, bool hasBoss)
 	{
 		if(hasBoss)
@@ -144,6 +154,8 @@ namespace
 		return stages[glm::clamp(level, 1, 4) - 1];
 	}
 
+	// 125000 ms -> "2:05". It rounds up, so the clock only shows 0:00 when
+	// the time is really over
 	string formatTime(int ms)
 	{
 		int seconds = (ms + 999) / 1000;
@@ -192,6 +204,7 @@ void Scene::init(ShaderProgram &program, Texture &atlasTexture, Text &smallText,
 
 	bombSystem.init();
 
+	// Two sprites reused for every HUD icon: one 8x8 and one 16x16
 	smallIcon.reset(Sprite::createSprite(glm::vec2(8.f), glm::vec2(8.f / ATLAS_SIZE), atlas, texProgram));
 	icon.reset(Sprite::createSprite(glm::vec2(16.f), atlasCellSize(), atlas, texProgram));
 }
@@ -203,6 +216,7 @@ void Scene::shutdown()
 	icon.reset();
 }
 
+// PLAY in the menu: a new game, from level 1 with 3 lives and no items
 void Scene::startGame()
 {
 	lives = START_LIVES;
@@ -222,6 +236,8 @@ bool Scene::loadLevel(int level)
 		return false;
 	}
 
+	// Read the file first: if it's wrong we keep the current level instead of
+	// ending up with half of one
 	unloadLevel();
 	currentLevel = level;
 
@@ -232,6 +248,7 @@ bool Scene::loadLevel(int level)
 		return false;
 	}
 
+	// Every POWERUP has to be on a bush; if not, it's a mistake in the level file
 	for(const auto &drop : info.itemDrops)
 	{
 		const glm::ivec2 &tile = drop.first;
@@ -249,6 +266,7 @@ bool Scene::loadLevel(int level)
 	player->init(*atlas, *texProgram);
 	player->setTileMap(map.get());
 	player->setTile(info.player);
+	// Items and god mode carry over from the last level (or from the last try)
 	player->setStats(levelStartStats);
 	player->setGodMode(godMode);
 
@@ -265,6 +283,8 @@ bool Scene::loadLevel(int level)
 		boss->init(*atlas, *texProgram, map.get(), info.boss);
 	}
 
+	// The door is a tile of the map. In the boss level there isn't one yet, and
+	// the DOOR line of the file says where it will appear
 	hasDoor = map->findDoor(doorTile);
 	bossDoorTile = info.door;
 	doorSprite.reset(Sprite::createSprite(
@@ -273,6 +293,7 @@ bool Scene::loadLevel(int level)
 		&map->getTilesheet(),
 		texProgram
 	));
+	// An extra door sprite, to draw it darker while it's closed
 	doorSprite->setFrame(map->getTileTexCoord(map->getDoorTileId()));
 	updateDoor();
 
@@ -280,6 +301,7 @@ bool Scene::loadLevel(int level)
 
 	timeLeftMs = info.time * 1000;
 	timeUp = false;
+	// So the warning and the door sound don't play just because the level loaded
 	timeWarned = timeLeftMs <= HURRY_UP_MS;
 	doorWasOpen = hasDoor && doorOpen();
 	levelMs = 0;
@@ -292,6 +314,7 @@ bool Scene::loadLevel(int level)
 	return true;
 }
 
+// The map is deleted last because everything else keeps a pointer to it
 void Scene::unloadLevel()
 {
 	bombSystem.clear();
@@ -309,18 +332,21 @@ bool Scene::isFinished() const
 	return finished;
 }
 
+// Always change state through here, so the state timer starts from 0
 void Scene::changeState(State newState)
 {
 	state = newState;
 	stateMs = 0;
 }
 
+// Keys that do something once per press. Walking and jumping are read by the
+// Player every frame instead
 void Scene::keyPressed(int key)
 {
 	if(finished)
 		return;
 
-	// Skip the end messages
+	// ENTER or SPACE skip the game over and victory screens
 	if((state == State::GAME_OVER || state == State::VICTORY) && (key == GLFW_KEY_ENTER || key == GLFW_KEY_SPACE))
 	{
 		finished = true;
@@ -346,7 +372,8 @@ void Scene::keyPressed(int key)
 	case GLFW_KEY_3:
 	case GLFW_KEY_4:
 	case GLFW_KEY_5:
-		// Jump to a level keeping the current lives and items
+		// Jump to a level keeping the current lives and items.
+		// key - GLFW_KEY_0 works because the number keys have consecutive codes
 		if(state == State::PLAYING || state == State::LEVEL_CLEAR)
 		{
 			levelStartStats = player->getStats();
@@ -365,6 +392,8 @@ void Scene::update(int deltaTime)
 	levelMs += deltaTime;
 	map->update(deltaTime);
 
+	// 1. Everybody moves. The world keeps going during the banners too (enemies
+	// walk, explosions finish), only the player's control and the clock stop
 	glm::vec2 playerCenter = player->getCenter();
 
 	player->update(deltaTime);
@@ -376,10 +405,12 @@ void Scene::update(int deltaTime)
 		projectile->update(deltaTime, *map);
 	bombSystem.update(deltaTime, *map, rayHazards, levelMs, *atlas, *texProgram);
 
+	// 2. Now that everything moved, check who touches whom
 	collisionSystem.update(state == State::PLAYING, *player, enemies, boss.get(), projectiles,
 	                       bombSystem, rayHazards, map->getTileSize(), levelMs);
 
-	// Exit door: the player has to be inside the door tile
+	// Exit door: the player's center has to be inside the door tile, so just
+	// touching it isn't enough, you have to walk in
 	if(state == State::PLAYING && !player->isDying() && hasDoor && doorOpen() &&
 	   map->toTile(player->getCenter()) == doorTile)
 	{
@@ -387,7 +418,10 @@ void Scene::update(int deltaTime)
 		changeState(State::LEVEL_CLEAR);
 		Audio::instance().playMusic(Music::CLEAR, false);
 	}
-	// Remove finished entities before rendering and the next update.
+	// 3. Remove finished entities before rendering and the next update.
+	// We do it after the collisions, so nothing is deleted while those loops
+	// are still going through the lists. erase + remove_if is the usual C++
+	// way to remove every element that matches a condition
 	enemies.erase(remove_if(enemies.begin(), enemies.end(),
 		[](const std::unique_ptr<Enemy> &enemy) { return enemy->isDead(); }), enemies.end());
 	projectiles.erase(remove_if(projectiles.begin(), projectiles.end(),
@@ -396,6 +430,7 @@ void Scene::update(int deltaTime)
 
 	updateDoor();
 
+	// 4. The rules of the current state
 	switch(state)
 	{
 	case State::PLAYING:
@@ -404,6 +439,7 @@ void Scene::update(int deltaTime)
 		{
 			timeLeftMs = 0;
 			timeUp = true;
+			// kill() and not hurt(): the heart doesn't save you from the clock
 			player->kill();
 			Audio::instance().playMusic(Music::TIME_UP, false);
 		}
@@ -414,6 +450,7 @@ void Scene::update(int deltaTime)
 		}
 		if(player->isDying())
 		{
+			// Silence for the death sound (when time is up, the jingle plays instead)
 			if(!timeUp)
 				Audio::instance().stopMusic();
 			changeState(State::PLAYER_DEAD);
@@ -423,6 +460,7 @@ void Scene::update(int deltaTime)
 	case State::LEVEL_CLEAR:
 		if(stateMs >= LEVEL_CLEAR_MS)
 		{
+			// Keep the items for the next level
 			levelStartStats = player->getStats();
 			if(currentLevel == NUM_LEVELS)
 			{
@@ -435,6 +473,7 @@ void Scene::update(int deltaTime)
 		break;
 
 	case State::PLAYER_DEAD:
+		// Wait for the death animation AND a bit more, so you can see what happened
 		if(!player->isAlive() && stateMs >= (timeUp ? TIME_UP_MS : AFTER_DEATH_MS))
 		{
 			--lives;
@@ -444,6 +483,7 @@ void Scene::update(int deltaTime)
 				Audio::instance().playMusic(Music::GAME_OVER, false);
 			}
 			else
+				// Same level again, with the items from when it started
 				if(!loadLevel(currentLevel))
 					return;
 		}
@@ -460,6 +500,7 @@ void Scene::update(int deltaTime)
 		break;
 	}
 
+	// Last, so the camera uses where the player ended up this frame
 	updateCamera();
 }
 
@@ -475,13 +516,15 @@ void Scene::updateDoor()
 
 	doorSprite->setPosition(glm::vec2(doorTile * map->getTileSize()));
 
-	// Sound when the door opens (all the enemies defeated)
+	// Sound when the door opens (all the enemies defeated). We compare with last
+	// frame so it only plays at the moment it opens
 	bool open = hasDoor && doorOpen();
 	if(open && !doorWasOpen)
 		Audio::instance().playSound(Sound::DOOR_OPEN);
 	doorWasOpen = open;
 }
 
+// K cheat
 void Scene::killAllEnemies()
 {
 	for(auto &enemy : enemies)
@@ -491,6 +534,8 @@ void Scene::killAllEnemies()
 	projectiles.clear();
 }
 
+// Enemies that are still alive (a dying one doesn't count anymore). The boss
+// counts as one more
 int Scene::enemiesLeft() const
 {
 	int count = 0;
@@ -503,6 +548,7 @@ int Scene::enemiesLeft() const
 	return count;
 }
 
+// In the boss level we also wait until its death animation is over
 bool Scene::doorOpen() const
 {
 	return enemiesLeft() == 0 && (!boss || boss->isDefeated());
@@ -512,11 +558,13 @@ void Scene::updateCamera()
 {
 	glm::vec2 view(CAMERA_WIDTH, CAMERA_HEIGHT);
 	glm::vec2 mapSize(map->getPixelSize());
+	// Where the camera would have to be to have the player in the middle
 	glm::vec2 target = player->getCenter() - view / 2.f;
 
 	for(int axis = 0; axis < 2; axis++)
 	{
-		// Small maps are centered, big ones follow the player
+		// Small maps are centered, big ones follow the player. The clamp stops
+		// the camera at the edges so we never see outside the map
 		if(mapSize[axis] <= view[axis])
 			camera[axis] = -(view[axis] - mapSize[axis]) / 2.f;
 		else
@@ -524,6 +572,7 @@ void Scene::updateCamera()
 	}
 
 	// Align to screen pixels so the zoomed camera can move one screen pixel at a time.
+	// A camera between pixels would make the whole map shimmer
 	constexpr float screenPixelsPerWorldPixel = CAMERA_ZOOM * PIXEL_SCALE;
 	camera = glm::round(camera * screenPixelsPerWorldPixel) / screenPixelsPerWorldPixel;
 }
@@ -536,7 +585,10 @@ void Scene::render()
 	Game &game = Game::instance();
 	glm::mat4 projection, modelview(1.0f);
 
-	// World, drawn above the HUD bar
+	// The screen is split in two with glViewport: the world on top and the HUD
+	// bar at the bottom. Nothing in the world knows about the camera: the
+	// projection simply shows the rectangle that starts at the camera, so
+	// moving the camera is just moving that window over the world
 	glViewport(0, HUD_HEIGHT * PIXEL_SCALE, SCREEN_WIDTH, WORLD_VIEW_HEIGHT * PIXEL_SCALE);
 	projection = glm::ortho(camera.x, camera.x + CAMERA_WIDTH, camera.y + CAMERA_HEIGHT, camera.y);
 
@@ -544,10 +596,12 @@ void Scene::render()
 	texProgram->setUniformMatrix4f("projection", projection);
 	texProgram->setUniform4f("color", 1.0f, 1.0f, 1.0f, 1.0f);
 	texProgram->setUniformMatrix4f("modelview", modelview);
+	// The map's vertices already have their final positions and texture
+	// coordinates, so modelview and texCoordDispl have to be neutral for it
 	texProgram->setUniform2f("texCoordDispl", 0.f, 0.f);
 	map->render();
 
-	// A closed door is drawn darker
+	// A closed door is drawn darker: the same tile again on top, tinted grey
 	if(hasDoor && !doorOpen())
 	{
 		texProgram->setUniform4f("color", 0.35f, 0.35f, 0.45f, 1.0f);
@@ -555,6 +609,8 @@ void Scene::render()
 		texProgram->setUniform4f("color", 1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
+	// What's drawn later appears on top: items and bombs behind the characters,
+	// and the fire over everything
 	rayHazards.render(*map, levelMs);
 
 	bombSystem.renderItemsAndBombs(*texProgram);
@@ -567,7 +623,8 @@ void Scene::render()
 		projectile->render();
 	bombSystem.renderExplosions(*texProgram);
 
-	// Messages over the world, in screen coordinates
+	// Messages over the world, in screen coordinates (without the camera, so
+	// they stay still while the world scrolls)
 	projection = glm::ortho(0.f, float(VIEW_WIDTH), float(WORLD_VIEW_HEIGHT), 0.f);
 	texProgram->setUniformMatrix4f("projection", projection);
 
@@ -586,17 +643,19 @@ void Scene::render()
 		break;
 	case State::PLAYER_DEAD:
 		if(timeUp)
-			renderBanner("TIME UP!", "GAME OVER");
+			// No subtitle: with lives left the level just starts again, and if it
+			// was the last one the GAME OVER banner comes right after
+			renderBanner("TIME UP!", "");
 		break;
 	case State::GAME_OVER:
-		renderBanner("GAME OVER", "PRESS ENTER TO RESTART");
+		renderBanner("GAME OVER", "PRESS ENTER TO GO BACK TO THE MENU");
 		break;
 	case State::VICTORY:
 		renderBanner("CONGRATULATIONS!", "YOU BEAT THE GAME!");
 		break;
 	}
 
-	// HUD bar
+	// HUD bar: its own viewport at the bottom, pink background and the info on top
 	glViewport(0, 0, SCREEN_WIDTH, HUD_HEIGHT * PIXEL_SCALE);
 	game.fillRect(glm::vec4(0.f, float(VIEW_HEIGHT - HUD_HEIGHT), float(VIEW_WIDTH), float(HUD_HEIGHT)),
 		glm::vec3(0.95f, 0.45f, 0.7f));
@@ -604,15 +663,19 @@ void Scene::render()
 	texProgram->setUniformMatrix4f("projection", projection);
 	renderHUD();
 
+	// Leave the full screen viewport for whatever is drawn next
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
+// A dark band across the middle of the screen with a title and an optional subtitle
 void Scene::renderBanner(const string &title, const string &subtitle)
 {
 	float height = subtitle.empty() ? 28.f : 40.f;
 	float y = (WORLD_VIEW_HEIGHT - height) / 2.f;
 
-	// The banner is drawn with a scissor clear, in window coordinates
+	// The band is painted with Game::fillRect (a scissor clear). The world
+	// viewport starts at the top of the window, so its coordinates match the
+	// 320x240 screen ones and the band lines up with the text
 	Game::instance().fillRect(glm::vec4(0.f, y, float(VIEW_WIDTH), height), BANNER_BACKGROUND_COLOR);
 
 	bigText->renderCentered(title, VIEW_WIDTH / 2.f, y + 6.f, BANNER_TITLE_COLOR);
@@ -620,12 +683,15 @@ void Scene::renderBanner(const string &title, const string &subtitle)
 		text->renderCentered(subtitle, VIEW_WIDTH / 2.f, y + 26.f, BANNER_SUBTITLE_COLOR);
 }
 
+// The bar at the bottom: time, lives, bombs, fire, speed, heart, enemies left
+// and the stage (or the boss health)
 void Scene::renderHUD()
 {
 	const PlayerStats &stats = player->getStats();
 	const glm::vec4 dark(0.1f, 0.05f, 0.1f, 1.f);
 	const float textY = 4.f;
 
+	// Same 8x8 sprite for every icon: we just change its frame and position
 	auto drawSmallIcon = [&](const glm::ivec2 &pixel, float x)
 	{
 		smallIcon->setFrame(atlasPixel(pixel.x, pixel.y));
@@ -639,7 +705,7 @@ void Scene::renderHUD()
 		return result.str();
 	};
 
-	// Remaining time (red when it is almost over)
+	// Remaining time (blinking red in the last 30 s)
 	drawSmallIcon(ICON_TIME, 4.f);
 	glm::vec4 timeColor = timeLeftMs < HURRY_UP_MS && (timeLeftMs / 250) % 2 == 0 ? glm::vec4(0.8f, 0.f, 0.f, 1.f) : dark;
 	text->render(formatTime(timeLeftMs), glm::vec2(14.f, textY), timeColor);
@@ -669,6 +735,7 @@ void Scene::renderHUD()
 	// Boss health
 	if(boss && !boss->isDefeated())
 	{
+		// One '=' per health point
 		string health(boss->getHealth(), '=');
 		text->render("BOSS " + health, glm::vec2(212.f, textY), glm::vec4(0.6f, 0.f, 0.f, 1.f));
 	}

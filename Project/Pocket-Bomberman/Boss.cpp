@@ -6,7 +6,7 @@
 
 namespace
 {
-    // Projectiles
+    // Projectiles. The seed gravity is weaker than the player's, so they float a bit
     constexpr float SEED_GRAVITY = 400.f;
     constexpr int PROJECTILE_LIFE_MS = 6000;
     const glm::vec2 PROJECTILE_SIZE(10.f, 10.f);
@@ -18,14 +18,18 @@ namespace
     constexpr int BIRD_ROW = 8;
     constexpr int BIRD_FRAMES = 3;
     constexpr float BIRD_SPEED = 70.f;
+    // How strongly the bird goes up and down while flying
     constexpr float BIRD_WAVE = 30.f;
 
-    // Boss: frames of 32x32 pixels starting at pixel (0, 128) of the atlas
+    // Boss: frames of 32x32 pixels starting at pixel (0, 128) of the atlas.
+    // They are 2x2 cells, so here we use pixels instead of atlasCell().
+    // The hitbox is smaller than the picture because of the leaves at the edges
     constexpr int BOSS_FRAME_SIZE = 32;
     constexpr int BOSS_ATLAS_Y = 128;
     const glm::vec2 BOSS_HITBOX_SIZE(24.f, 28.f);
     const glm::vec2 BOSS_HITBOX_OFFSET(4.f, 4.f);
 
+    // Explosions needed to defeat it
     constexpr int MAX_HEALTH = 4;
     constexpr float PATROL_SPEED = 24.f;
     constexpr float BERSERK_PATROL_SPEED = 36.f;
@@ -34,6 +38,8 @@ namespace
     // How long the boss remains visually locked in its attack animation 
     // before returning to its normal resting stance
     constexpr int ATTACK_POSE_MS = 500;
+    // After each hit it's invulnerable for 1 s. Without this, one explosion (which
+    // lasts 0.6 s and is checked every frame) would take all its health at once
     constexpr int INVULNERABLE_MS = 1000;
     constexpr int DYING_MS = 2000;
 
@@ -78,6 +84,7 @@ Projectile::Projectile(Kind kind,
         sprite->addKeyframe(0, atlasCell(SEED_COLUMN, SEED_ROW));
     }
     sprite->changeAnimation(0);
+    // The frames look left, so flip them if it flies to the right
     sprite->setFlipX(velocity.x > 0.f);
 }
 
@@ -90,20 +97,23 @@ void Projectile::update(int deltaTime, const TileMap &map)
 
     if (kind == Kind::SEED)
     {
+        // Gravity makes the arc
         velocity.y += SEED_GRAVITY * dt;
         position += velocity * dt;
 
     }
     else
     {
+        // Straight forward, and the vertical speed follows a sine, so the bird
+        // goes up and down softly (about 7 pixels) as it flies
         position.x += velocity.x * dt;
         position.y += std::sin(lifeMs / 250.f) * BIRD_WAVE * dt;
     }
 
     const glm::vec2 mapSize = glm::vec2(map.getPixelSize());
-    // Terrain does not destroy projectiles; lifetime and arena bounds still apply.
-    // If the projectile goes out of bounds on the left or top,
-    // we need to make sure it is still considered alive until it has fully left the screen
+    // Terrain does not destroy projectiles; they disappear when their time runs
+    // out or when they leave the map. On the left and top we wait until the
+    // whole sprite (16 px) is out, so it doesn't vanish while still visible
     if (lifeMs <= 0 ||
         position.x < -ATLAS_CELL || position.x > mapSize.x ||
         position.y < -ATLAS_CELL || position.y > mapSize.y)
@@ -111,7 +121,7 @@ void Projectile::update(int deltaTime, const TileMap &map)
         alive = false;
     }
 
-    // Displace the position of the sprite so that its hitbox is centered on the projectile's position
+    // The 10x10 hitbox is centered inside the 16x16 sprite (3 pixels of margin)
     sprite->setPosition(glm::round(position - (glm::vec2(float(ATLAS_CELL)) - PROJECTILE_SIZE) / 2.f));
 }
 
@@ -160,6 +170,7 @@ void Boss::init(Texture &atlasTexture,
     atlas = &atlasTexture;
     program = &shaderProgram;
     map = tileMap;
+    // The tile in the level file is where the top-left of the tree goes
     position = glm::vec2(tile * map->getTileSize());
 
     sprite.reset(Sprite::createSprite(
@@ -169,6 +180,7 @@ void Boss::init(Texture &atlasTexture,
         program
     ));
 
+    // Idle: slowly "breathing" between two frames. Attack: the other two, faster
     sprite->setNumberAnimations(ANIMATION_COUNT);
     sprite->setAnimationSpeed(IDLE, 2);
     sprite->addKeyframe(IDLE, atlasPixel(0 * BOSS_FRAME_SIZE, BOSS_ATLAS_Y));
@@ -193,7 +205,7 @@ void Boss::update(int deltaTime,
     {
         dyingMs -= deltaTime;
 
-        // Shakes while dying
+        // Shakes one pixel left and right while dying, changing every 50 ms
         const float shake = (dyingMs / 50) % 2 == 0 ? -1.f : 1.f;
         sprite->setPosition(position + glm::vec2(shake, 0.f));
 
@@ -205,6 +217,7 @@ void Boss::update(int deltaTime,
     if (invulnerableMs > 0)
         invulnerableMs -= deltaTime;
 
+    // After attacking it keeps the attack pose for a moment, then goes back to idle
     if (poseMs > 0)
     {
         poseMs -= deltaTime;
@@ -212,10 +225,15 @@ void Boss::update(int deltaTime,
             sprite->changeAnimation(IDLE);
     }
 
+    // It only walks when it isn't attacking. Like the Chaser, it checks the
+    // floor in front of its feet and turns around instead of falling, and it
+    // also turns around when it bumps into a wall
     if (poseMs <= 0)
     {
         const float dt = deltaTime / 1000.f;
         const float speed = health <= 2 ? BERSERK_PATROL_SPEED : PATROL_SPEED;
+        // The collisions use the hitbox, so we move the hitbox and then turn it
+        // back into the sprite position
         glm::vec2 body = position + BOSS_HITBOX_OFFSET;
         const float step = moveDirection * speed * dt;
         const glm::vec2 foot(body.x + step + (moveDirection > 0 ? BOSS_HITBOX_SIZE.x : -1.f),
@@ -233,6 +251,7 @@ void Boss::update(int deltaTime,
     if (attackTimerMs <= 0)
     {
         attack(playerCenter, projectiles);
+        // Angry when it's almost defeated: it attacks more often
         attackTimerMs = health <= 2 ? BERSERK_ATTACK_MS : ATTACK_MS;
     }
 
@@ -247,11 +266,14 @@ void Boss::attack(const glm::vec2 &playerCenter,
     poseMs = ATTACK_POSE_MS;
     Audio::instance().playSound(Sound::BOSS_ATTACK);
 
+    // Everything comes out of the top-center of the tree
     const glm::vec2 mouth = position + glm::vec2(BOSS_FRAME_SIZE / 2.f - 5.f, 6.f);
 
+    // attackCount % 3 goes 0, 1, 2, 0, 1, 2... so the pattern is seeds, seeds, bird
     if (attackCount % 3 == 2)
     {
-        // A bird flies towards the player, at his height
+        // A bird flies towards the player, at his height. You dodge it by
+        // jumping over it or by blowing it up
         const float dir = playerCenter.x < mouth.x ? -1.f : 1.f;
         const glm::vec2 start(mouth.x, playerCenter.y - PROJECTILE_SIZE.y / 2.f);
         projectiles.emplace_back(new Projectile(
@@ -260,6 +282,11 @@ void Boss::attack(const glm::vec2 &playerCenter,
     else
     {
         // Two seeds arc towards the player, passing through walls and platforms.
+        // Each one has to land on a target after a chosen time t. With gravity,
+        //   target = mouth + v*t + 0.5*g*t^2
+        // so the launch speed is v = (target - mouth)/t, minus 0.5*g*t in y.
+        // They aim 20 px to each side of where the player is NOW, and land at
+        // different times, so standing still is a bad idea but moving saves you
         const float flightTimes[] = { 0.8f, 1.2f };
         const float offsets[] = { -20.f, 20.f };
 
@@ -283,12 +310,15 @@ void Boss::render()
     if (state == DEFEATED)
         return;
 
-    // Blinks after being hit and while dying
+    // Flashes red after being hit and while dying. The shader multiplies the
+    // texture by "color", so (1, 0.4, 0.4) keeps the red and darkens the rest.
+    // Only one of the two timers is running at a time, so their sum works for both
     if ((invulnerableMs > 0 || state == DYING) && ((invulnerableMs + dyingMs) / 70) % 2 == 0)
         program->setUniform4f("color", 1.f, 0.4f, 0.4f, 1.f);
 
     sprite->render();
 
+    // Back to white, or everything drawn after the boss would be red too
     program->setUniform4f("color", 1.f, 1.f, 1.f, 1.f);
 }
 

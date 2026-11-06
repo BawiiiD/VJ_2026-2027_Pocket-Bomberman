@@ -13,6 +13,7 @@
 
 namespace
 {
+    // The options of the main screen, in order (keyPressed uses the same order)
     const char *OPTIONS[] = { "PLAY", "INSTRUCTIONS", "CREDITS", "EXIT" };
     constexpr int OPTION_COUNT = 4;
 
@@ -40,6 +41,8 @@ void Menu::init(ShaderProgram &shaderProgram, Texture &atlas, Text &smallText, T
         backgroundTexture->setMagFilter(GL_NEAREST);
 
         // The first Intro picture occupies x=28..186, y=18..97 in the atlas.
+        // We scale it up until it covers the whole screen (keeping its shape)
+        // and center it, so some of it is cut at the sides
         const glm::vec2 picturePosition(28.f, 18.f);
         const glm::vec2 pictureSize(159.f, 80.f);
         const glm::vec2 textureSize(float(backgroundTexture->width()), float(backgroundTexture->height()));
@@ -56,7 +59,7 @@ void Menu::init(ShaderProgram &shaderProgram, Texture &atlas, Text &smallText, T
         std::cout << "Could not load menu background images/intro.png" << std::endl;
     }
 
-    // Bomberman walking in the main menu, drawn twice as big
+    // Bomberman walking in the main menu, drawn twice as big (same walking frames as in the game)
     bomberman.reset(Sprite::createSprite(glm::vec2(32.f), atlasCellSize(), &atlas, program));
     bomberman->setNumberAnimations(1);
     bomberman->setAnimationSpeed(0, 8);
@@ -68,6 +71,9 @@ void Menu::init(ShaderProgram &shaderProgram, Texture &atlas, Text &smallText, T
 
     icon.reset(Sprite::createSprite(glm::vec2(16.f), atlasCellSize(), &atlas, program));
 }
+
+// The three screens share the same key handling: in the main one you move the
+// cursor and choose; in the other two any of these keys takes you back
 
 void Menu::shutdown()
 {
@@ -106,6 +112,8 @@ Menu::Action Menu::keyPressed(int key)
 
     switch (key)
     {
+    // The cursor wraps around: up from the first option goes to the last one.
+    // We add OPTION_COUNT before the % so it never becomes negative
     case GLFW_KEY_UP:
         selected = (selected + OPTION_COUNT - 1) % OPTION_COUNT;
         Audio::instance().playSound(Sound::MENU_MOVE);
@@ -124,6 +132,7 @@ Menu::Action Menu::keyPressed(int key)
         {
         case 0:
             return Action::PLAY;
+        // The instructions and the credits have the calmer map music
         case 1:
             screen = Screen::INSTRUCTIONS;
             Audio::instance().playMusic(Music::MAP);
@@ -146,9 +155,12 @@ void Menu::render()
     glm::mat4 projection = glm::ortho(0.f, float(VIEW_WIDTH), float(VIEW_HEIGHT), 0.f);
     glm::mat4 modelview(1.f);
 
+    // Plain background first; the picture (main screen only) goes over it
     Game::instance().fillRect(glm::vec4(0.f, 0.f, float(VIEW_WIDTH), float(VIEW_HEIGHT)),
                               BACKGROUND_COLOR);
 
+    // Menus are drawn in plain 320x240 screen coordinates, without any camera.
+    // We reset every uniform because the scene may have left other values
     program->use();
     program->setUniformMatrix4f("projection", projection);
     program->setUniformMatrix4f("modelview", modelview);
@@ -158,7 +170,8 @@ void Menu::render()
 
     if(screen == Screen::MAIN && background)
     {
-        // Dim the picture so that the menu text remains readable over it.
+        // Dim the picture so that the menu text remains readable over it
+        // (the shader multiplies the texture by "color")
         program->setUniform4f("color", 0.45f, 0.45f, 0.45f, 1.f);
         background->render();
         program->setUniform4f("color", 1.f, 1.f, 1.f, 1.f);
@@ -189,12 +202,13 @@ void Menu::renderIcon(int column, int row, const glm::vec2 &pos)
 
 void Menu::renderMain()
 {
-    // Title bouncing a little
+    // Title bouncing a little: 2 pixels up and down with a sine, rounded to whole pixels
     const float bounce = std::round(std::sin(elapsedMs / 300.f) * 2.f);
     text->renderCentered("POCKET", VIEW_WIDTH / 2.f, 30.f + bounce, TITLE_COLOR);
     bigText->renderCentered("BOMBERMAN", VIEW_WIDTH / 2.f, 42.f + bounce, TITLE_COLOR);
 
-    // Bomberman walks across the screen
+    // Bomberman walks across the screen. fmod makes him start again from the
+    // left (just outside the screen) when he leaves on the right
     const float walkX = std::fmod(elapsedMs / 25.f, VIEW_WIDTH + 64.f) - 32.f;
     bomberman->setPosition(glm::vec2(std::round(walkX), 76.f));
     bomberman->render();
@@ -205,7 +219,7 @@ void Menu::renderMain()
         const bool isSelected = (i == selected);
         text->renderCentered(OPTIONS[i], VIEW_WIDTH / 2.f, y, isSelected ? HIGHLIGHT_COLOR : MAIN_TEXT_COLOR);
 
-        // A bomb points at the selected option
+        // A bomb points at the selected option, just left of its text
         if (isSelected)
             renderIcon(0, 2, glm::vec2(VIEW_WIDTH / 2.f - text->width(OPTIONS[i]) / 2.f - 22.f, y - 4.f));
     }
@@ -217,6 +231,8 @@ void Menu::renderInstructions()
 {
     bigText->renderCentered("INSTRUCTIONS", VIEW_WIDTH / 2.f, 8.f, TITLE_COLOR);
 
+    // Each call writes a line and moves down, so adding or removing a line
+    // doesn't mean fixing the y of all the others by hand
     float y = 32.f;
     auto line = [&](const char *str, const glm::vec4 &color)
     {
@@ -232,7 +248,8 @@ void Menu::renderInstructions()
     line("SPACE OR X   DROP A BOMB", NORMAL_COLOR);
     line("ESC          BACK TO THE MENU", NORMAL_COLOR);
 
-    // Items with their icons
+    // Items with their icons, in two columns. The icon column is the same as
+    // the ItemType value, like in the game
     y += 6.f;
     line("BREAK BUSHES TO FIND THESE POWER-UPS:", HEADER_COLOR);
     const char *names[] = { "BOMB UP: +1 BOMB", "FIRE UP: +1 FIRE RANGE", "HEART: SURVIVE A HIT", "SPEED UP: RUN FASTER" };

@@ -8,13 +8,16 @@
 
 namespace
 {
+    // Hitbox 14x14, centered in the 16 px sprite and with the feet at the bottom
     constexpr float SPRITE_SIZE = 16.f;
     const glm::vec2 HITBOX_SIZE(14.f, 14.f);
     const glm::vec2 HITBOX_OFFSET(1.f, 2.f);
 
+    // Same physics as the player
     constexpr float GRAVITY = 700.f;
     constexpr float MAX_FALL_SPEED = 280.f;
 
+    // How long a dead enemy stays on screen (it blinks in the second half)
     constexpr int DYING_MS = 700;
 
     // Rows of images/sprites.png with each enemy
@@ -22,15 +25,16 @@ namespace
     constexpr int HOPPER_ROW = 6;
     constexpr int WALKER_ROW = 7;
 
-    // Walker
+    // Walker: about 2 tiles per second
     constexpr float WALKER_SPEED = 30.f;
 
-    // Hopper
+    // Hopper: waits 1.1 s, then jumps about 2 tiles high towards the player
     constexpr float HOPPER_WAIT_MS = 1100.f;
     constexpr float HOPPER_JUMP_SPEED = 220.f;
     constexpr float HOPPER_SPEED = 50.f;
 
-    // Chaser
+    // Chaser: slow patrol, and a run that is almost as fast as the player (64),
+    // so you can escape but it puts pressure on you. It sees 7 tiles ahead
     constexpr float CHASER_PATROL_SPEED = 22.f;
     constexpr float CHASER_RUN_SPEED = 58.f;
     constexpr float CHASER_SIGHT_X = 112.f;
@@ -82,6 +86,7 @@ void Enemy::init(Texture &atlas,
 {
     map = tileMap;
 
+    // Standing in its tile, centered, like the player
     const float tileSize = float(map->getTileSize());
     position = glm::vec2(
         tile.x * tileSize + (tileSize - HITBOX_SIZE.x) / 2.f,
@@ -97,7 +102,8 @@ void Enemy::init(Texture &atlas,
 
     sprite->setNumberAnimations(ANIMATION_COUNT);
 
-    // The move animation is also used in the air (the hopper opens and closes its mouth)
+    // The move animation is also used in the air (the hopper opens and closes its
+    // mouth while it jumps). The death animation plays once and stays on its last frame
     sprite->setAnimationSpeed(MOVE, 6);
     for (int column : moveColumns)
         sprite->addKeyframe(MOVE, atlasCell(column, atlasRow));
@@ -115,6 +121,7 @@ void Enemy::update(int deltaTime, const glm::vec2 &playerCenter)
 {
     sprite->update(deltaTime);
 
+    // A dying enemy doesn't move, it only counts down until it can be removed
     if (state == DYING)
     {
         dyingMs -= deltaTime;
@@ -125,6 +132,7 @@ void Enemy::update(int deltaTime, const glm::vec2 &playerCenter)
 
     const float dt = deltaTime / 1000.f;
 
+    // First the enemy decides, then the physics are the same for everyone
     think(dt, playerCenter);
 
     velocity.y = std::min(velocity.y + GRAVITY * dt, MAX_FALL_SPEED);
@@ -141,14 +149,14 @@ void Enemy::update(int deltaTime, const glm::vec2 &playerCenter)
         onGround = false;
     }
 
-    // Enemy frames look to the left
+    // Enemy frames look to the left, so we flip them when they go right
     sprite->setFlipX(direction > 0);
     sprite->setPosition(glm::round(position - HITBOX_OFFSET));
 }
 
 void Enemy::render()
 {
-    // Blink at the end of the death animation
+    // Blink during the second half of the death time, before disappearing
     if (state == DYING && dyingMs < DYING_MS / 2 && (dyingMs / 60) % 2 == 0)
         return;
 
@@ -166,6 +174,8 @@ void Enemy::kill()
     Audio::instance().playSound(Sound::ENEMY_DEATH);
 }
 
+// True for DYING and DEAD: from the moment it's hit it doesn't count anymore
+// (it can't hurt you, and it's not one of the enemies left)
 bool Enemy::isDying() const
 {
     return state != ALIVE;
@@ -181,6 +191,8 @@ glm::vec4 Enemy::getBounds() const
     return glm::vec4(position, HITBOX_SIZE);
 }
 
+// Looks at the tile just below and in front of its feet. If it's not solid,
+// the next step would be into the void. A tile with a bomb counts as floor
 bool Enemy::groundAhead(int dir) const
 {
     const glm::vec2 foot(
@@ -193,7 +205,8 @@ bool Enemy::groundAhead(int dir) const
 }
 
 
-// Walker: patrols its platform
+// Walker: patrols its platform, turning around at walls and edges.
+// It ignores the player completely
 
 Walker::Walker()
     : Enemy(WALKER_ROW, { 0, 1 }, { 2, 3, 4 })
@@ -202,6 +215,8 @@ Walker::Walker()
 
 void Walker::think(float dt, const glm::vec2 &playerCenter)
 {
+    // We only check for edges on the ground: in the air there's never floor ahead,
+    // and it would keep turning around every frame while falling
     if (hitWall || (onGround && !groundAhead(direction)))
         direction = -direction;
 
@@ -209,7 +224,8 @@ void Walker::think(float dt, const glm::vec2 &playerCenter)
 }
 
 
-// Hopper: waits on the floor and jumps towards the player
+// Hopper: waits on the floor and jumps towards the player. It aims only when
+// it takes off, so you can dodge it once it's in the air
 
 Hopper::Hopper()
     : Enemy(HOPPER_ROW, { 0, 1 }, { 2, 3, 4 }),
@@ -221,6 +237,7 @@ void Hopper::think(float dt, const glm::vec2 &playerCenter)
 {
     if (onGround)
     {
+        // Still while it waits for the next jump
         velocity.x = 0.f;
         waitMs -= dt * 1000.f;
 
@@ -236,14 +253,16 @@ void Hopper::think(float dt, const glm::vec2 &playerCenter)
     }
     else if (hitWall)
     {
-        // Bounce against walls while in the air
+        // Bounce against walls while in the air. moveAndCollide stops it but
+        // doesn't change velocity.x, so we flip it ourselves
         direction = -direction;
         velocity.x = direction * HOPPER_SPEED;
     }
 }
 
 
-// Chaser: runs after a nearby player ahead on the same tile level
+// Chaser: patrols slowly, and runs after the player when it sees him in front
+// of it, on the same floor. It never falls from its platform
 
 Chaser::Chaser()
     : Enemy(CHASER_ROW, { 0, 1, 2, 1 }, { 3, 4, 5 })
@@ -261,6 +280,8 @@ void Chaser::think(float dt, const glm::vec2 &playerCenter)
     const glm::vec2 feetOffset(0.f, HITBOX_SIZE.y / 2.f - 0.01f);
     const bool sameLevel =
         map->toTile(playerCenter + feetOffset).y == map->toTile(center + feetOffset).y;
+    // It only looks forward: the player has to be on the side it's facing
+    // (distanceX and direction with the same sign), on the same row and close
     const bool seesPlayer =
         distanceX * direction > 0.f && sameLevel &&
         std::abs(distanceX) < CHASER_SIGHT_X;
@@ -277,7 +298,8 @@ void Chaser::think(float dt, const glm::vec2 &playerCenter)
         direction = -direction;
     }
 
-    // Never falls from its platform: waits at the edge or turns around
+    // Never falls from its platform: while chasing it waits at the edge looking
+    // at you, and while patrolling it turns around
     if (onGround && !groundAhead(direction))
     {
         if (seesPlayer)

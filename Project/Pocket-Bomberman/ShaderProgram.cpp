@@ -28,6 +28,9 @@ GLint ShaderProgram::bindVertexAttribute(const string &attribName, GLint size, G
 {
 	GLint attribPos;
 
+	// Ask the program where the attribute is, and explain the layout:
+	// "size" floats per vertex, "stride" bytes from one vertex to the next,
+	// starting "firstPointer" bytes into the buffer
 	attribPos = glGetAttribLocation(programId, attribName.c_str());
 	glVertexAttribPointer(attribPos, size, GL_FLOAT, GL_FALSE, stride, firstPointer);
 
@@ -65,6 +68,10 @@ const string &ShaderProgram::log() const
 {
 	return errorLog;
 }
+
+// All the setUniform functions work the same way: find the uniform by name
+// and set its value. The location is -1 when the shader doesn't have (or
+// doesn't use) that uniform, and then we skip it.
 
 void ShaderProgram::setUniform2f(const string &uniformName, float v0, float v1)
 {

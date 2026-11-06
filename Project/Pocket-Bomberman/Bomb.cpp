@@ -4,12 +4,14 @@
 
 namespace
 {
+    // A bomb explodes 2.5 s after being placed
     constexpr int FUSE_MS = 2500;
 
+    // Its 3 frames are the first cells of row 2 of the atlas
     constexpr int BOMB_ROW = 2;
     constexpr int BOMB_FRAMES = 3;
     constexpr int BOMB_FPS = 6;
-    // The bomb blinks faster just before exploding
+    // In the last 0.8 s the bomb blinks much faster, as a warning to run away
     constexpr int HURRY_MS = 800;
     constexpr int HURRY_FPS = 14;
 
@@ -38,6 +40,7 @@ Bomb::Bomb(glm::ivec2 tile,
         &program
     ));
 
+    // Both animations use the same frames, only the speed changes
     sprite->setNumberAnimations(2);
     sprite->setAnimationSpeed(FUSE, BOMB_FPS);
     sprite->setAnimationSpeed(HURRY, HURRY_FPS);
@@ -56,13 +59,16 @@ void Bomb::update(int deltaTime)
 
     remainingMs -= deltaTime;
 
+    // Switch to the fast blinking once, the first time we enter the last 0.8 s.
+    // The tick also sounds right away to mark the change
     if (remainingMs <= HURRY_MS && sprite->animation() != HURRY)
     {
         sprite->changeAnimation(HURRY);
         tickMs = 0;
     }
 
-    // One tick each time the fuse animation loops, so it speeds up with it
+    // One tick each time the fuse animation loops (3 frames), so the sound goes
+    // faster when the blinking does, without having a separate timer for it
     tickMs -= deltaTime;
     if (tickMs <= 0 && remainingMs > 0)
     {
@@ -71,6 +77,7 @@ void Bomb::update(int deltaTime)
         tickMs += 1000 * BOMB_FRAMES / fps;
     }
 
+    // We only mark it; BombSystem is the one that removes it and makes the fire
     if (remainingMs <= 0)
         triggered = true;
 }

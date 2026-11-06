@@ -7,6 +7,7 @@ using namespace std;
 
 Texture::Texture()
 {
+	// texId = 0 means "no texture yet", and deleting texture 0 is harmless
 	texId = 0;
 	widthTex = 0;
 	heightTex = 0;
@@ -25,7 +26,7 @@ Texture::~Texture()
 bool Texture::loadFromFile(const string &filename, PixelFormat format)
 {
 	unsigned char *image = NULL;
-	// Decodes the PNG and returns a plain array of pixels in CPU memory (RGB or RGBA)
+	// SOIL decodes the PNG into a plain array of pixels in CPU memory (RGB or RGBA)
 	switch(format)
 	{
 	case TEXTURE_PIXEL_FORMAT_RGB:
@@ -37,10 +38,10 @@ bool Texture::loadFromFile(const string &filename, PixelFormat format)
 	}
 	if(image == NULL)
 		return false;
-	// Creates an empty texture in GPU and make it the current one
+	// Create an empty texture in the GPU and make it the current one
 	glGenTextures(1, &texId);
 	glBindTexture(GL_TEXTURE_2D, texId);
-	// Copies the pixel array to GPU memory
+	// Copy the pixels to the GPU
 	switch(format)
 	{
 	case TEXTURE_PIXEL_FORMAT_RGB:
@@ -51,22 +52,28 @@ bool Texture::loadFromFile(const string &filename, PixelFormat format)
 		break;
 	}
 	glGenerateMipmap(GL_TEXTURE_2D);
+	// The GPU has its own copy now, so the CPU one can go. It has to be freed
+	// with SOIL's own function because SOIL allocated it
 	SOIL_free_image_data(image);
-	
+
 	return true;
 }
 
+// These glyph functions come from the base code of the labs (one-channel
+// textures for fonts). Our Text class builds an RGBA image instead.
 void Texture::loadFromGlyphBuffer(unsigned char *buffer, int width, int height)
 {
 	glGenTextures(1, &texId);
 	glBindTexture(GL_TEXTURE_2D, texId);
+	// Rows of a one-byte-per-pixel image aren't aligned to 4 bytes, so tell OpenGL
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, buffer);
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
-// Uploads pixels that were build in memory
+// Uploads pixels that we built in memory (the font, or intro.png after making
+// its green background transparent)
 void Texture::loadFromRGBABuffer(const unsigned char *buffer, int width, int height)
 {
 	widthTex = width;
@@ -102,7 +109,9 @@ void Texture::generateMipmap()
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
-// Sets the texture wrapping mode (GL_REPEAT, GL_CLAMP_TO_EDGE, etc.)
+// What happens when a texture coordinate goes outside 0..1: GL_REPEAT tiles
+// the image, GL_CLAMP_TO_EDGE repeats the border pixel. Sprites use clamp so
+// they never pick pixels from the opposite side of the atlas
 void Texture::setWrapS(GLint value)
 {
 	wrapS = value;
@@ -113,13 +122,14 @@ void Texture::setWrapT(GLint value)
 	wrapT = value;
 }
 
-// Used when the texture is drawn smaller
+// Filter used when the texture is drawn smaller than it is
 void Texture::setMinFilter(GLint value)
 {
 	minFilter = value;
 }
 
-// Used when the texture is drawn bigger
+// Filter used when the texture is drawn bigger (always, in our 2x game).
+// GL_NEAREST keeps the pixels sharp
 void Texture::setMagFilter(GLint value)
 {
 	magFilter = value;
@@ -129,6 +139,8 @@ void Texture::use() const
 {
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texId);
+	// The wrap and filter settings belong to the texture, so we set them here
+	// every time it's bound
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);

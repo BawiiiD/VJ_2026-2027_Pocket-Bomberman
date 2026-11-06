@@ -5,7 +5,9 @@
 
 namespace
 {
-    // The font texture has 16x8 cells of 8x8 pixels, one per ASCII code
+    // We didn't want to depend on a font file, so the font is drawn right here
+    // in the code. The texture has 16x8 cells of 8x8 pixels, one per ASCII code,
+    // so finding a letter is just code % 16 (column) and code / 16 (row)
     constexpr int CELL = 8;
     constexpr int COLUMNS = 16;
     constexpr int ROWS = 8;
@@ -13,8 +15,10 @@ namespace
     constexpr int GLYPH_HEIGHT = 7;
 
     // Horizontal distance between characters, in font pixels
+    // (5 for the letter + 1 of space)
     constexpr int ADVANCE = 6;
 
+    // A letter drawn as 7 rows of 5 characters: '#' is a pixel, '.' is empty
     struct Glyph
     {
         char character;
@@ -75,7 +79,9 @@ namespace
         { '=', { ".....", ".....", "#####", ".....", "#####", ".....", "....." } },
     };
 
-    // Builds an RGBA image with every glyph drawn in white over a transparent background
+    // Builds an RGBA image with every glyph drawn in white over a transparent
+    // background. White is useful because the shader multiplies by the "color"
+    // uniform, so the same font can be drawn in any color
     std::vector<unsigned char> buildFontImage()
     {
         const int width = COLUMNS * CELL;
@@ -88,8 +94,7 @@ namespace
             const int cellX = (glyph.character % COLUMNS) * CELL;
             const int cellY = (glyph.character / COLUMNS) * CELL;
 
-            // For each character of the glyph, if it's a '#', we set the corresponding pixel to white
-            // Otherwise, we leave it transparent (0, 0, 0, 0)
+            // Every '#' becomes a white pixel; the rest stays transparent (0, 0, 0, 0)
             for (int y = 0; y < GLYPH_HEIGHT; ++y)
             {
                 for (int x = 0; x < GLYPH_WIDTH; ++x)
@@ -113,6 +118,7 @@ void Text::init(ShaderProgram &shaderProgram, int size)
     program = &shaderProgram;
     cellSize = size;
 
+    // The image is made once in memory and then uploaded like any other texture
     std::vector<unsigned char> image = buildFontImage();
     fontTexture.loadFromRGBABuffer(&image[0], COLUMNS * CELL, ROWS * CELL);
     fontTexture.setWrapS(GL_CLAMP_TO_EDGE);
@@ -120,6 +126,8 @@ void Text::init(ShaderProgram &shaderProgram, int size)
     fontTexture.setMinFilter(GL_NEAREST);
     fontTexture.setMagFilter(GL_NEAREST);
 
+    // One sprite the size of a letter cell. render() moves it and changes its
+    // frame for every character, instead of having one sprite per letter
     sprite.reset(Sprite::createSprite(
         glm::vec2(float(cellSize)),
         glm::vec2(1.f / COLUMNS, 1.f / ROWS),
@@ -137,6 +145,7 @@ void Text::render(const std::string &str,
                   const glm::vec2 &pos,
                   const glm::vec4 &color)
 {
+    // The font is designed in 8 pixel cells; with a bigger cellSize everything scales up
     const float advance = float(cellSize * ADVANCE) / CELL;
 
     program->setUniform4f("color", color.r, color.g, color.b, color.a);
@@ -144,9 +153,9 @@ void Text::render(const std::string &str,
     glm::vec2 cursor = pos;
     for (char c : str)
     {
-        // Convert lowercase to uppercase
+        // We only drew uppercase letters, so lowercase ones use them too
         const int code = std::toupper(static_cast<unsigned char>(c));
-        // Characters with no glyph are  drawn as spaces (so we still move the cursor)
+        // Spaces (and anything we don't have) draw nothing but still move the cursor
         if (code != ' ' && code < COLUMNS * ROWS)
         {
             sprite->setFrame(glm::vec2(
@@ -159,7 +168,7 @@ void Text::render(const std::string &str,
         cursor.x += advance;
     }
 
-    // Reset the color to white
+    // Back to white, or everything drawn after the text would be tinted
     program->setUniform4f("color", 1.f, 1.f, 1.f, 1.f);
 }
 
@@ -176,7 +185,8 @@ float Text::width(const std::string &str) const
     if (str.empty())
         return 0.f;
 
-    // The last character does not need the spacing after it
+    // Width in pixels, used to center texts. The last letter doesn't need the
+    // space that goes after it
     const float advance = float(cellSize * ADVANCE) / CELL;
     return advance * (str.size() - 1) + float(cellSize * GLYPH_WIDTH) / CELL;
 }

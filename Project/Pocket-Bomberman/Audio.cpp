@@ -1,12 +1,18 @@
 #include <iostream>
+// miniaudio is a single header. Defining this here (and only here) makes this
+// file compile the library itself; everywhere else it would just be declarations
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 #include "Audio.h"
 
 namespace
 {
-	constexpr int VOICES = 4; // number of simultaneous voices for each sound effect
-	constexpr ma_uint64 MIN_REPEAT_MS = 40; // minimum time between same sound effect
+	// Copies of each effect, so the same sound can play several times at once
+	// (four bombs exploding together)
+	constexpr int VOICES = 4;
+	// The same effect isn't started twice in less than this. In a chain of 6 bombs
+	// they all explode in the same frame, and 6 explosions at once would just be loud
+	constexpr ma_uint64 MIN_REPEAT_MS = 40;
 	constexpr float MUSIC_VOLUME = 0.45f; // music volume
 
     struct SoundInfo
@@ -15,6 +21,8 @@ namespace
         float volume;
     };
 
+    // One entry per Sound, in the same order as the enum. Each one has its own
+    // volume, so a soft sound like the bomb tick doesn't cover everything
     const SoundInfo SOUNDS[] =
     {
         { "sounds/bomb_place.wav", 0.8f },
@@ -35,6 +43,7 @@ namespace
         { "sounds/menu_select.wav", 0.7f }
     };
 
+    // Same order as the Music enum (NONE has no file)
     const char *MUSIC_FILES[] =
     {
         nullptr,
@@ -52,11 +61,14 @@ namespace
     };
 }
 
+// Everything that needs miniaudio's types lives here, inside the .cpp. Audio.h
+// only sees a pointer to it, so no other file has to include miniaudio.h
 struct Audio::Impl
 {
     struct Effect
     {
         ma_sound voices[VOICES];
+        // How many voices loaded correctly (0 = the file is missing)
         int voiceCount = 0;
         int nextVoice = 0;
         bool played = false;
@@ -88,6 +100,8 @@ void Audio::init()
     if (impl->engineReady)
         return;
 
+    // The engine opens the default audio device. If there isn't one, we just
+    // stay silent: every play function checks engineReady first
     if (ma_engine_init(NULL, &impl->engine) != MA_SUCCESS)
     {
         std::cout << "Could not start the audio, the game will be silent" << std::endl;
@@ -99,7 +113,8 @@ void Audio::init()
     {
         Impl::Effect &effect = impl->effects[i];
 
-        // The first voice decodes the file, the others share its data
+        // Effects are decoded once at the start, so playing them later is instant.
+        // The first voice decodes the file and the others share its data
         if (ma_sound_init_from_file(&impl->engine, SOUNDS[i].file, MA_SOUND_FLAG_DECODE,
                                     NULL, NULL, &effect.voices[0]) != MA_SUCCESS)
         {
@@ -146,6 +161,7 @@ void Audio::playSound(Sound sound)
     if (effect.voiceCount == 0)
         return;
 
+    // Skip it if this same effect started a moment ago
     const ma_uint64 now = ma_engine_get_time_in_milliseconds(&impl->engine);
     if (effect.played && now - effect.lastPlayMs < MIN_REPEAT_MS)
         return;
@@ -163,6 +179,7 @@ void Audio::playSound(Sound sound)
         effect.nextVoice = (effect.nextVoice + 1) % effect.voiceCount;
     }
 
+    // From the beginning, in case this voice had already been used
     ma_sound_seek_to_pcm_frame(voice, 0);
     ma_sound_start(voice);
 }
@@ -172,6 +189,7 @@ void Audio::playMusic(Music music, bool loop)
     if (!impl->engineReady)
         return;
 
+    // The same song is already on (for example, the menu music continuing after the intro)
     if (music == impl->currentMusic && impl->musicLoaded && ma_sound_is_playing(&impl->music))
         return;
 
@@ -179,7 +197,8 @@ void Audio::playMusic(Music music, bool loop)
     if (music == Music::NONE)
         return;
 
-    // Music is streamed from the file instead of being decoded all at once
+    // Music is streamed from the file instead of being decoded all at once,
+    // because a few minutes of decoded music would take a lot of memory
     const char *file = MUSIC_FILES[int(music)];
     if (ma_sound_init_from_file(&impl->engine, file, MA_SOUND_FLAG_STREAM,
                                 NULL, NULL, &impl->music) != MA_SUCCESS)

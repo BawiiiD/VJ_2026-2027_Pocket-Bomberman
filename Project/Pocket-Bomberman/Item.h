@@ -6,6 +6,8 @@
 #include "ItemType.h"
 #include "Sprite.h"
 
+// A power-up lying where a bush was. It floats a little so it's easy to see,
+// and Scene removes it when Bomberman touches it (CollisionSystem applies its effect).
 class Item
 {
 public:
@@ -20,6 +22,7 @@ public:
 
     ItemType getType() const;
     glm::ivec2 getTilePos() const;
+    // The whole tile, so you just have to walk into it to pick it up
     glm::vec4 bounds() const;
 
 private:

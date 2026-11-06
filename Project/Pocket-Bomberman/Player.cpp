@@ -13,27 +13,35 @@
 namespace
 {
     // Size of the sprite on screen and of the hitbox used for collisions.
-    // The hitbox is a bit smaller so that Bomberman fits through 1-tile gaps.
+    // The hitbox is a bit smaller so that Bomberman fits through 1-tile gaps
+    // without having to be perfectly aligned. It's 2 px in from the sides and
+    // the top, and its bottom is the bottom of the sprite, so the feet touch the floor.
     constexpr float SPRITE_SIZE = 16.f;
     const glm::vec2 HITBOX_SIZE(12.f, 14.f);
     const glm::vec2 HITBOX_OFFSET(2.f, 2.f);
 
     // Physics constants for the player (pixels and seconds)
-    constexpr float GRAVITY = 700.f;
+    constexpr float GRAVITY = 700.f;   // How fast the falling speed grows
     // A full jump rises about 55 px: enough to climb 3 tiles (48 px) but not 4
     constexpr float JUMP_SPEED = 285.f;
+    // Falling never gets faster than this, so he never moves more than one
+    // tile in a frame (moveAndCollide needs that)
     constexpr float MAX_FALL_SPEED = 280.f;
-    constexpr float PLAYER_SPEED = 64.f;
-    constexpr float SPEED_PER_LEVEL = 12.f;
+    constexpr float PLAYER_SPEED = 64.f;      // 4 tiles per second
+    constexpr float SPEED_PER_LEVEL = 12.f;   // Extra speed for each Speed Up
 
-    // Landing faster than this plays the landing sound
+    // Landing faster than this plays the landing sound (so just standing, or
+    // stepping down a few pixels, is silent)
     constexpr float LAND_SOUND_SPEED = 100.f;
 
-    // Jumping is still allowed a few ms after walking off a ledge
+    // Jumping is still allowed a few ms after walking off a ledge ("coyote time",
+    // like the cartoon coyote that runs off a cliff). Players usually press jump
+    // a little late, and without this the game feels unfair
     constexpr int COYOTE_MS = 80;
     // Blinking time after the heart has been lost
     constexpr int INVULNERABLE_MS = 2000;
 
+    // Maximum level of each item
     constexpr int MAX_BOMBS = 4;
     constexpr int MAX_FIRE = 4;
     constexpr int MAX_SPEED_LEVEL = 3;
@@ -55,6 +63,7 @@ namespace
     };
 }
 
+// No OpenGL here: the sprite is made in init()
 Player::Player()
 {
     map = nullptr;
@@ -84,7 +93,8 @@ void Player::init(Texture &atlas, ShaderProgram &shaderProgram)
 
     sprite->setNumberAnimations(ANIMATION_COUNT);
 
-    // Helper function to add frames (columns of the player row) to an animation
+    // Small helper so each animation is a single line below: speed, whether it
+    // loops, and its frames given as columns of the player row
     auto addFrames = [&](int animation,
                          std::initializer_list<int> columns,
                          int framesPerSecond,
@@ -102,7 +112,7 @@ void Player::init(Texture &atlas, ShaderProgram &shaderProgram)
     // Air animations start with the crouched frame and then stay on the last one
     addFrames(JUMP, { 3, 4 }, 10, false);
     addFrames(FALL, { 3, 5 }, 10, false);
-    // Damage animations are executed only once
+    // The death animations play only once: when they end, Player knows he's DEAD
     addFrames(DEATH_BY_BOMB, { 10, 11, 12 }, 6, false);
     addFrames(DEATH_BY_MONSTER, { 13, 14, 13, 14 }, 5, false);
     addFrames(CELEBRATE, { 6, 7 }, 4, true);
@@ -120,7 +130,7 @@ void Player::update(int deltaTime)
     if (state == DEAD)
         return;
 
-    // Player is playing a death animation
+    // While dying he doesn't move, we just wait for the animation to end
     if (state == DYING)
     {
         if (sprite->animationFinished())
@@ -131,6 +141,7 @@ void Player::update(int deltaTime)
     if (invulnerableMs > 0)
         invulnerableMs -= deltaTime;
 
+    // The speeds are in pixels per second, so we work with seconds
     const float dt = deltaTime / 1000.f;
 
     bool walking = false;
@@ -153,35 +164,44 @@ void Player::update(int deltaTime)
             moveX = speed * dt;
         }
 
+        // "walking" only if he really moved. Pushing against a wall shows him
+        // standing instead of walking in place
         if (moveX != 0.f)
             walking = !moveAndCollide(*map, posPlayer, HITBOX_SIZE, moveX, 0);
 
         const bool jumpKey = game.getKey(GLFW_KEY_UP) || game.getKey(GLFW_KEY_Z);
 
-        // Jump starts once per key press
+        // A jump needs a NEW press (otherwise holding the key would make him
+        // jump again as soon as he lands), and being on the floor or just
+        // having left it (coyote time)
         if (jumpKey && !jumpWasPressed && (onGround || coyoteMs > 0))
         {
             velocityY = -JUMP_SPEED;
             onGround = false;
-            coyoteMs = 0;
+            coyoteMs = 0;   // used up, so no double jump
             Audio::instance().playSound(Sound::JUMP);
         }
 
-        // Releasing the key early makes a shorter jump
+        // Releasing the key early makes a shorter jump: we cut the speed going up.
+        // Tap for a small hop, hold for the full jump. Very handy to land on bombs
         if (!jumpKey && velocityY < -JUMP_SPEED * 0.4f)
             velocityY = -JUMP_SPEED * 0.4f;
 
         jumpWasPressed = jumpKey;
     }
 
-    // Gravity and vertical movement
+    // Gravity and vertical movement. This also runs while celebrating, so if he
+    // reached the door in the air he still falls to the floor
     velocityY = std::min(velocityY + GRAVITY * dt, MAX_FALL_SPEED);
 
     const bool wasOnGround = onGround;
 
     if (moveAndCollide(*map, posPlayer, HITBOX_SIZE, velocityY * dt, 1))
     {
-        // Landed on the floor or hit the ceiling
+        // Something blocked us: if we were going down it's the floor, if we were
+        // going up it's a ceiling. Either way the vertical speed stops.
+        // Even when standing still, gravity pushes him down a bit every frame and
+        // the floor blocks it; that's how we know every frame that he's on the ground
         onGround = velocityY > 0.f;
         if (onGround && !wasOnGround && velocityY > LAND_SOUND_SPEED)
             Audio::instance().playSound(Sound::LAND);
@@ -192,6 +212,7 @@ void Player::update(int deltaTime)
         onGround = false;
     }
 
+    // On the floor the coyote time is always full; once in the air it runs out
     if (onGround)
         coyoteMs = COYOTE_MS;
     else if (wasOnGround && velocityY >= 0.f)
@@ -199,6 +220,7 @@ void Player::update(int deltaTime)
     else
         coyoteMs = std::max(0, coyoteMs - deltaTime);
 
+    // While celebrating we keep the victory animation
     if (state == NORMAL)
         updateAnimation(walking);
 
@@ -207,7 +229,7 @@ void Player::update(int deltaTime)
 
 void Player::render()
 {
-    // Blink while invulnerable
+    // Blink while invulnerable: every 80 ms he's skipped, then drawn, then skipped...
     if (invulnerableMs > 0 && (invulnerableMs / 80) % 2 == 0)
         return;
 
@@ -223,7 +245,8 @@ void Player::setTile(const glm::ivec2 &tile)
 {
     const float tileSize = float(map->getTileSize());
 
-    // Horizontally centered in the tile, feet on the floor of the tile
+    // Horizontally centered in the tile, feet on the bottom of the tile.
+    // Also resets everything else, because this is also used when retrying
     posPlayer = glm::vec2(
         tile.x * tileSize + (tileSize - HITBOX_SIZE.x) / 2.f,
         (tile.y + 1) * tileSize - HITBOX_SIZE.y
@@ -233,6 +256,8 @@ void Player::setTile(const glm::ivec2 &tile)
     onGround = false;
     coyoteMs = 0;
     invulnerableMs = 0;
+    // As if jump was already held: if you're holding it when the level starts,
+    // he won't jump by himself until you press it again
     jumpWasPressed = true;
     facingRight = true;
     state = NORMAL;
@@ -268,12 +293,15 @@ bool Player::isDying() const
     return state == DYING || state == DEAD;
 }
 
+// Something touched him. Nothing happens if he's already dying or celebrating,
+// in god mode, or still blinking after losing the heart (that blinking also
+// stops one explosion from hitting him twice)
 bool Player::hurt(bool byBomb)
 {
     if (state != NORMAL || godMode || invulnerableMs > 0)
         return false;
 
-    // The heart absorbs the hit
+    // The heart absorbs the hit and gives him 2 s to get away
     if (stats.heart)
     {
         stats.heart = false;
@@ -282,12 +310,15 @@ bool Player::hurt(bool byBomb)
         return false;
     }
 
+    // Burning in the fire and being caught by an enemy look different
     state = DYING;
     sprite->changeAnimation(byBomb ? DEATH_BY_BOMB : DEATH_BY_MONSTER);
     Audio::instance().playSound(Sound::PLAYER_DEATH);
     return true;
 }
 
+// Used when time runs out: neither the heart nor god mode save you from the clock.
+// No sound here, Scene plays the "time up" jingle instead
 void Player::kill()
 {
     if (state != NORMAL)
@@ -305,10 +336,12 @@ void Player::celebrate()
 
     state = CELEBRATING;
     invulnerableMs = 0;
+    // The celebration frames look at the camera, so no flip
     sprite->changeAnimation(CELEBRATE);
     sprite->setFlipX(false);
 }
 
+// Every item improves one stat, up to its maximum
 void Player::applyItem(ItemType type)
 {
     switch (type)
@@ -348,6 +381,8 @@ bool Player::isGodMode() const
     return godMode;
 }
 
+// Picks the animation from what he's doing: in the air (going up or down),
+// walking or standing
 void Player::updateAnimation(bool walking)
 {
     int wantedAnimation;
@@ -359,6 +394,8 @@ void Player::updateAnimation(bool walking)
     else
         wantedAnimation = STAND;
 
+    // Only when it changes: changeAnimation restarts from the first frame, so
+    // calling it every frame would freeze the walking animation
     if (sprite->animation() != wantedAnimation)
         sprite->changeAnimation(wantedAnimation);
 
@@ -368,6 +405,7 @@ void Player::updateAnimation(bool walking)
 
 void Player::updateSpritePosition()
 {
+    // From the hitbox corner to the sprite corner (2 px up and to the left).
     // Rounded to whole pixels so that the pixel art does not shimmer
     sprite->setPosition(glm::round(posPlayer - HITBOX_OFFSET));
 }

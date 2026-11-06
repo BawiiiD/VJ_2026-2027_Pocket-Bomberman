@@ -6,12 +6,14 @@
 
 using namespace std;
 
-// A struct to hold the data for each animation
+// One animation of a Sprite: the list of frames and how long each one stays
+// on screen. A frame is just "where in the texture" it is.
 struct AnimKeyframes
 {
-    // The time in milliseconds between each keyframe
+    // How long each frame is shown, in milliseconds
     float millisecsPerKeyframe;
-    // The displacement of the sprite at each keyframe
+    // For each frame, the texture coordinates of its top-left corner. The Sprite
+    // moves its texture window there to show that frame
     vector<glm::vec2> keyframeDispl;
 };
 

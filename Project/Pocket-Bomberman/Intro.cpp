@@ -19,6 +19,7 @@ namespace
     constexpr float PICTURE_TOP = 16.f;
     constexpr float TEXT_TOP = 192.f;
 
+    // How long it takes to fade from/to black
     constexpr int FADE_MS = 300;
 
     // In images/intro.png the sprites are below this row, over a green background
@@ -75,7 +76,8 @@ namespace
         const char *line2;
     };
 
-    // Same order as Intro::Shot
+    // Same order as Intro::Shot. To change the story or how long each part lasts,
+    // this table is the only thing to touch
     const ShotInfo SHOTS[] =
     {
         { TOWER_PICTURE, 3500, true, false, "ONE STORMY NIGHT, A DARK TOWER", "APPEARED OUT OF NOWHERE..." },
@@ -94,7 +96,9 @@ void Intro::init(ShaderProgram &shaderProgram, Text &smallText)
     text = &smallText;
 
     // The sprites have a green background: it becomes transparent. The pictures
-    // keep their colors (the grass of the first one is that same green)
+    // keep their colors (the grass of the first one is that same green).
+    // We load it with SOIL ourselves instead of Texture::loadFromFile because we
+    // need to change the pixels before sending them to the GPU
     int width, height, channels;
     unsigned char *image = SOIL_load_image("images/intro.png", &width, &height, &channels, SOIL_LOAD_RGBA);
     if (image == nullptr)
@@ -125,6 +129,7 @@ void Intro::init(ShaderProgram &shaderProgram, Text &smallText)
     texture.setMagFilter(GL_NEAREST);
 
     const glm::vec2 textureSize = glm::vec2(float(width), float(height));
+    // Every sprite is drawn SCALE times bigger than its size in the image
     auto createSprite = [&](const glm::vec2 &size)
     {
         return std::unique_ptr<Sprite>(Sprite::createSprite(size * SCALE, size / textureSize, &texture, program));
@@ -153,6 +158,8 @@ void Intro::update(int deltaTime)
     if (finished)
         return;
 
+    // When the current shot is over, go to the next one; after the last one the
+    // intro is finished and Game shows the menu
     shotMs += deltaTime;
     if (shotMs >= SHOTS[shot].durationMs)
     {
@@ -185,7 +192,8 @@ void Intro::render()
     program->setUniformMatrix4f("modelview", modelview);
     program->setUniform2f("texCoordDispl", 0.f, 0.f);
 
-    // Fade from and to black
+    // Fade from and to black. The shader multiplies everything by "color", so
+    // a grey color makes the whole picture darker
     const ShotInfo &info = SHOTS[shot];
     float brightness = 1.f;
     if (info.fadeIn)
@@ -194,7 +202,8 @@ void Intro::render()
         brightness = std::min(brightness, float(info.durationMs - shotMs) / FADE_MS);
     program->setUniform4f("color", brightness, brightness, brightness, 1.f);
 
-    // The sprites can't go out of the picture (the stones fly away)
+    // The sprites can't go out of the picture (the stones fly away), so we
+    // limit the drawing to the picture's rectangle with the scissor
     glEnable(GL_SCISSOR_TEST);
     glScissor(0, int((VIEW_HEIGHT - PICTURE_TOP - PICTURE_SIZE.y * SCALE) * PIXEL_SCALE),
               SCREEN_WIDTH, int(PICTURE_SIZE.y * SCALE * PIXEL_SCALE));
@@ -212,6 +221,7 @@ void Intro::render()
             renderSprite(*heroBack, HERO_BACK_POSITION);
         }
         break;
+    // The two Bomberman sprites change frame every 250 ms, so the cape waves
     case Shot::HERO:
         hero->setFrame(texCoord(HERO_FRAMES[(shotMs / 250) % 2]));
         renderSprite(*hero, HERO_POSITION);
@@ -244,7 +254,8 @@ void Intro::renderPicture()
 
 void Intro::renderLightning(int ms, float groundY)
 {
-    // Short flashes, first on the left of the tower and then on the right
+    // Short flashes, first on the left of the tower and then on the right.
+    // The pattern repeats every 1.1 s; each bolt flashes twice, like real lightning
     const int t = ms % 1100;
     const bool left = (t >= 100 && t < 180) || (t >= 260 && t < 320);
     const bool right = (t >= 600 && t < 680) || (t >= 760 && t < 820);
@@ -265,13 +276,15 @@ void Intro::renderStones(int ms, int duration)
     const int leaveStart = duration - STONES_LEAVE_MS;
     if (ms > leaveStart)
     {
+        // progress goes from 0 to 1; squaring it makes them start slow and speed up
         const float progress = float(ms - leaveStart) / STONES_LEAVE_MS;
         radius += 200.f * progress * progress;
     }
 
     for (int i = 0; i < 5; ++i)
     {
-        // Pentagon starting at the top, each stone spinning with a different phase
+        // Pentagon starting at the top (one stone every 72 degrees), each stone
+        // spinning with a different phase so they don't all look the same
         const float angle = glm::radians(-90.f + 72.f * i);
         const glm::vec2 center = EMBLEM_CENTER + radius * glm::vec2(std::cos(angle), std::sin(angle));
 
@@ -289,6 +302,7 @@ void Intro::renderStar(int ms)
     if (t >= RUN_MS)
         return;
 
+    // glm::mix goes in a straight line from one point to the other
     const glm::vec2 center = glm::mix(BLADE_TOP, BLADE_BOTTOM, float(t) / RUN_MS);
     star->setFrame(texCoord(STAR_FRAMES[(ms / 100) % 2]));
     renderSprite(*star, center - STAR_SIZE / 2.f);
@@ -301,7 +315,8 @@ glm::vec2 Intro::texCoord(const glm::vec2 &pixel) const
 
 void Intro::renderSprite(Sprite &sprite, const glm::vec2 &scenePos)
 {
-    // From picture pixels to screen coordinates
+    // From picture pixels to screen coordinates: scaled, and moved down to where
+    // the picture starts
     sprite.setPosition(glm::round(scenePos * SCALE) + glm::vec2(0.f, PICTURE_TOP));
     sprite.render();
 }

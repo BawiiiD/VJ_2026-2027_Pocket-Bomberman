@@ -1,7 +1,8 @@
 #ifndef ITEM_TYPE_H
 #define ITEM_TYPE_H
 
-// Power-ups in row 4 of images/sprites.png
+// The four power-ups. Their values are their column in row 4 of
+// images/sprites.png, so the icon of an item is just atlasCell(type, 4)
 enum class ItemType
 {
     BombUp = 0,     // One more bomb at the same time

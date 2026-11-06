@@ -6,10 +6,15 @@
 
 #include "Sprite.h"
 
+// The fire of one bomb: a cross made of tiles that lasts 0.6 s.
+// BombSystem decides which tiles burn and which piece of fire goes in each
+// one (center, middle of an arm, or the tip). Explosion only draws them,
+// growing and then shrinking, and tells if something is touching the fire.
 class Explosion
 {
 public:
-    // The order matches the columns of images/explosion.png
+    // The order matches the columns of images/explosion.png, so the piece
+    // number is also its column in the image
     enum class Piece
     {
         CENTER,
@@ -25,6 +30,7 @@ public:
     {
         glm::ivec2 tile;
         Piece piece;
+        // A bush that just broke shows a flame tip, but that flame doesn't hurt
         bool damaging = true;
     };
 
@@ -36,6 +42,7 @@ public:
     void update(int deltaTime);
     void render();
 
+    // After 0.6 s the explosion is over and BombSystem deletes it
     bool finished() const;
     // True if any damaging tile of the explosion overlaps the box
     bool hits(const glm::vec4 &box) const;

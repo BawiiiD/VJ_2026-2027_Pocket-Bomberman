@@ -22,6 +22,8 @@ namespace
 void RayHazards::init(TileMap &map, ShaderProgram &program)
 {
 	rays = map.findRays();
+	// The emitter frames and the ray are tiles of the tileset, so the sprite
+	// uses the map's texture instead of the atlas
 	raySprite.reset(Sprite::createSprite(
 		glm::vec2(float(map.getTileSize())),
 		map.getTileTexSize(),
@@ -36,6 +38,7 @@ void RayHazards::clear()
 	raySprite.reset();
 }
 
+// levelMs % 3000 is where we are inside the cycle; the first 1.5 s are "on"
 bool RayHazards::rayOn(int levelMs) const
 {
 	return levelMs % (RAY_ON_MS + RAY_OFF_MS) < RAY_ON_MS;
@@ -59,10 +62,11 @@ void RayHazards::damagePlayer(Player &player, const glm::vec4 &playerBox, int ti
 	{
 		for(const RayInfo &ray : rays)
 		{
+			// One box for the whole ray, only as tall as the beam that's drawn
 			glm::vec4 rayBox(ray.start.x * tileSize, ray.start.y * tileSize + RAY_HIT_TOP,
 			                 ray.length * tileSize, RAY_HIT_HEIGHT);
 			if(overlaps(rayBox, playerBox))
-				player.hurt(true);
+				player.hurt(true);  // the ray burns, like the fire
 		}
 	}
 }
@@ -78,6 +82,8 @@ void RayHazards::render(const TileMap &map, int levelMs)
 	int emitterFrame = EMITTER_WAIT_FRAME;
 	if(on)
 		emitterFrame = EMITTER_SHOOT_FRAME;
+	// During the last 0.6 s of the pause the 3 charging frames are shown
+	// one after the other (200 ms each), as a warning
 	else if(rayTime >= chargeStart)
 		emitterFrame = 1 + (rayTime - chargeStart) * EMITTER_CHARGE_FRAMES / RAY_CHARGE_MS;
 
@@ -95,6 +101,7 @@ void RayHazards::render(const TileMap &map, int levelMs)
 		if(!on)
 			continue;
 
+		// The ray alternates between its two frames, so it looks like it's moving
 		raySprite->setFrame(map.getTileTexCoord(map.getRayTileId(levelMs / RAY_FRAME_MS)));
 		for(int i = 0; i < ray.length; i++)
 		{

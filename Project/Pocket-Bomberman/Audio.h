@@ -3,7 +3,8 @@
 
 #include <memory>
 
-// Short sound effects (sounds/*.wav)
+// Short sound effects (sounds/*.wav). The order has to match the SOUNDS
+// table in Audio.cpp, because we use the enum value as the index
 enum class Sound
 {
     BOMB_PLACE,
@@ -23,10 +24,12 @@ enum class Sound
     MENU_MOVE,
     MENU_SELECT,
 
+    // Not a sound: it's just how many there are
     COUNT
 };
 
-// Music and jingles (sounds/*.mp3). Only one plays at a time
+// Music and jingles (sounds/*.mp3). Only one plays at a time, and the order
+// matches MUSIC_FILES in Audio.cpp
 enum class Music
 {
     NONE,
@@ -43,8 +46,11 @@ enum class Music
     VICTORY
 };
 
-// Audio is a singleton that plays the sound effects and the music with miniaudio.
-// If there is no audio device or a file is missing, that sound is simply not played.
+// Audio plays the sound effects and the music, using miniaudio. It's a
+// singleton like Game, so anyone can just call Audio::instance().playSound(...)
+// without having to pass the audio object around.
+// If there is no audio device or a file is missing, that sound is simply not
+// played: the game never crashes because of the sound.
 class Audio
 {
 private:
@@ -62,9 +68,12 @@ public:
     void init();
     void shutdown();
 
+    // Fire and forget: the effect plays on its own until it ends
     void playSound(Sound sound);
 
-    // Does nothing if this music is already playing
+    // Replaces the current music. Does nothing if this music is already playing,
+    // so we can call it every time a level loads without restarting the song.
+    // Jingles are played with loop = false
     void playMusic(Music music, bool loop = true);
     void stopMusic();
 

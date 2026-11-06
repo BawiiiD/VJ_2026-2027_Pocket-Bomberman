@@ -1,5 +1,7 @@
 #version 330
 
+// Not used by the game (see simple.frag)
+
 uniform mat4 projection, modelview;
 
 in vec2 position;

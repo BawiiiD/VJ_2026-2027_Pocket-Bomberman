@@ -8,9 +8,12 @@
 #include "Shader.h"
 
 
-// Using the Shader class ShaderProgram can link a vertex and a fragment shader
-// together, bind input attributes to their corresponding vertex shader names, 
-// and bind the fragment output to a name from the fragment shader
+// A ShaderProgram is a vertex shader and a fragment shader linked together.
+// This is what we "use" before drawing. It also lets us:
+// - tell OpenGL where each vertex attribute (position, texture coordinate)
+//   is inside our vertex arrays,
+// - send uniforms: values that are the same for the whole draw call, like
+//   the projection matrix, the sprite position or a color tint.
 
 
 class ShaderProgram
@@ -22,13 +25,16 @@ public:
 	void init();
 	void addShader(const Shader &shader);
 	void bindFragmentOutput(const string &outputName);
+	// Says where to find an attribute in the vertex data and returns its location
 	GLint bindVertexAttribute(const string &attribName, GLint size, GLsizei stride, GLvoid *firstPointer);
 	void link();
 	void free();
 
+	// From now on, draw calls go through this program
 	void use();
 
-	// Pass uniforms to the associated shaders
+	// Send values to the uniforms of the shaders. If the shader doesn't have
+	// a uniform with that name they just do nothing
 	void setUniform2f(const string &uniformName, float v0, float v1);
 	void setUniform3f(const string &uniformName, float v0, float v1, float v2);
 	void setUniform4f(const string &uniformName, float v0, float v1, float v2, float v3);
