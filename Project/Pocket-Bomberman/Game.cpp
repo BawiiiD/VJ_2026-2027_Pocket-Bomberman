@@ -4,8 +4,7 @@
 #include "Audio.h"
 
 
-// The constructor can't touch OpenGL yet (the window doesn't exist when the
-// singleton is created), so it only leaves everything in a safe state.
+// Leaves everything in a safe state.
 // The real setup happens in init().
 Game::Game()
     : bPlay(false),
@@ -95,7 +94,6 @@ void Game::render()
 // Player asks getKey() every frame instead.
 void Game::keyPressed(int key)
 {
-	// GLFW sends -1 for unknown keys, and that would be out of the array
 	if(key < 0 || key > GLFW_KEY_LAST)
 		return;
 	keys[key] = true;
@@ -113,7 +111,6 @@ void Game::keyPressed(int key)
 
 	if(state == GameState::MENU)
 	{
-		// The menu tells us what the player picked
 		switch(menu.keyPressed(key))
 		{
 		case Menu::Action::PLAY:
@@ -168,9 +165,8 @@ bool Game::getKey(int key) const
 
 void Game::fillRect(const glm::vec4 &rect, const glm::vec3 &color) const
 {
-	// Trick to paint a rectangle without a shader: limit the drawing area with the
-	// scissor and clear it with the color we want. The scissor works in window
-	// pixels with (0,0) at the bottom-left, so we scale and flip the y
+	// Limit the drawing area with the scissor and clear it with the color we want.
+	// The scissor works in window pixels with (0,0) at the bottom-left, so we scale and flip the y
 	glEnable(GL_SCISSOR_TEST);
 	glScissor(int(rect.x * PIXEL_SCALE),
 	          int((VIEW_HEIGHT - rect.y - rect.w) * PIXEL_SCALE),
@@ -185,8 +181,6 @@ void Game::fillRect(const glm::vec4 &rect, const glm::vec3 &color) const
 
 void Game::shutdown()
 {
-	// OpenGL objects have to be released while the context still exists, so we
-	// can't leave it to the destructors (they run after main() closes the window)
 	scene.shutdown();
 	menu.shutdown();
 	intro.shutdown();
@@ -196,9 +190,6 @@ void Game::shutdown()
 	Audio::instance().shutdown();
 }
 
-// Every sprite, tile and letter of the game is drawn with this same program:
-// texture.vert places the quad on the screen and texture.frag picks its color
-// from the texture.
 void Game::initShaders()
 {
 	Shader vShader, fShader;

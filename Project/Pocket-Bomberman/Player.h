@@ -10,8 +10,8 @@
 
 // Abilities improved by the items. They are kept between levels.
 // They're in their own struct so Scene can save them in one go when a level
-// starts, and give them back if Bomberman dies (you lose what you picked up
-// in the failed try). The values here are what a new game starts with.
+// starts, and give them back if Bomberman dies (he keeps the items he had at
+// the start of the level, and loses the ones he picked up in the failed try).
 struct PlayerStats
 {
     int maxBombs = 1;      // Bombs on the map at the same time (Bomb Up)
@@ -42,7 +42,7 @@ public:
     glm::vec2 getCenter() const;
     // The hitbox as (x, y, width, height), for every collision
     glm::vec4 getBounds() const;
-    // The tile where his center is: that's where his bombs go
+    // The tile where his center is
     glm::ivec2 getTile() const;
 
     // False once the death animation has finished (Scene waits for it before

@@ -6,7 +6,6 @@
 
 namespace
 {
-    // Projectiles. The seed gravity is weaker than the player's, so they float a bit
     constexpr float SEED_GRAVITY = 400.f;
     constexpr int PROJECTILE_LIFE_MS = 6000;
     const glm::vec2 PROJECTILE_SIZE(10.f, 10.f);
@@ -35,7 +34,7 @@ namespace
     constexpr float BERSERK_PATROL_SPEED = 36.f;
     constexpr int ATTACK_MS = 2400;
     constexpr int BERSERK_ATTACK_MS = 1600;   // Low health
-    // How long the boss remains visually locked in its attack animation 
+    // How long the boss remains visually locked in its attack animation
     // before returning to its normal resting stance
     constexpr int ATTACK_POSE_MS = 500;
     // After each hit it's invulnerable for 1 s. Without this, one explosion (which
@@ -97,15 +96,13 @@ void Projectile::update(int deltaTime, const TileMap &map)
 
     if (kind == Kind::SEED)
     {
-        // Gravity makes the arc
         velocity.y += SEED_GRAVITY * dt;
         position += velocity * dt;
 
     }
     else
     {
-        // Straight forward, and the vertical speed follows a sine, so the bird
-        // goes up and down softly (about 7 pixels) as it flies
+        // Straight forward, and the vertical speed follows a sine wave
         position.x += velocity.x * dt;
         position.y += std::sin(lifeMs / 250.f) * BIRD_WAVE * dt;
     }
@@ -180,7 +177,6 @@ void Boss::init(Texture &atlasTexture,
         program
     ));
 
-    // Idle: slowly "breathing" between two frames. Attack: the other two, faster
     sprite->setNumberAnimations(ANIMATION_COUNT);
     sprite->setAnimationSpeed(IDLE, 2);
     sprite->addKeyframe(IDLE, atlasPixel(0 * BOSS_FRAME_SIZE, BOSS_ATLAS_Y));

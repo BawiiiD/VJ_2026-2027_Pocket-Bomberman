@@ -10,7 +10,7 @@
 
 // Something the boss throws. Seeds fly in an arc (they have gravity) and birds
 // fly across in a gentle wave. Both go through walls and platforms, so you
-// can't just hide under a platform; you have to dodge them, or blow them up.
+// have to dodge them, or blow them up.
 class Projectile
 {
 public:
@@ -48,9 +48,8 @@ private:
     std::unique_ptr<Sprite> sprite;
 };
 
-// Final boss: the big tree of level 5. It isn't an Enemy because it works
-// differently: it's 32x32, it has health, it walks from side to side without
-// falling, and it creates projectiles.
+// Final boss: the big tree of level 5. It's 32x32, it has health, it walks
+// from side to side without falling, and it creates projectiles.
 // It attacks every few seconds (seeds, seeds, bird, and again), and when it
 // has 2 health or less it moves and attacks faster.
 class Boss
@@ -95,13 +94,12 @@ private:
         DEFEATED
     };
 
-    // Kept so it can create projectiles whenever it attacks
     Texture *atlas;
     ShaderProgram *program;
     TileMap *map;
     std::unique_ptr<Sprite> sprite;
 
-    // Top-left of the sprite (unlike the player, here it's not the hitbox)
+    // Top-left of the sprite
     glm::vec2 position;
     State state;
     int moveDirection;    // -1 left, +1 right

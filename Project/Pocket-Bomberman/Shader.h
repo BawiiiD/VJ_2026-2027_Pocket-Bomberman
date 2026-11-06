@@ -13,13 +13,6 @@ using namespace std;
 enum ShaderType { VERTEX_SHADER, FRAGMENT_SHADER };
 
 
-// A Shader is one small GPU program (a vertex or a fragment shader) that we
-// send to OpenGL and compile. It can be loaded from a file (what we do, with
-// the files in shaders/) or straight from a string.
-// On its own it does nothing: ShaderProgram joins two of them into the
-// program we actually draw with.
-
-
 class Shader
 {
 
@@ -33,7 +26,7 @@ public:
 
 	GLuint getId() const;
 	bool isCompiled() const;
-	// Compiler messages, very useful when the shader has a typo
+	// Compiler messages
 	const string &log() const;
 
 private:

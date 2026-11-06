@@ -69,10 +69,6 @@ const string &ShaderProgram::log() const
 	return errorLog;
 }
 
-// All the setUniform functions work the same way: find the uniform by name
-// and set its value. The location is -1 when the shader doesn't have (or
-// doesn't use) that uniform, and then we skip it.
-
 void ShaderProgram::setUniform2f(const string &uniformName, float v0, float v1)
 {
 	GLint location = glGetUniformLocation(programId, uniformName.c_str());

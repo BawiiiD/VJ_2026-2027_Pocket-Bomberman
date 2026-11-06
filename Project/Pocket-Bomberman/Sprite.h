@@ -11,11 +11,10 @@
 
 using namespace std;
 
-// A Sprite is a rectangle (a "quad") that shows a piece of a texture.
-// The quad is built once at (0,0); to move it we only change its position,
+// A Sprite is a rectangle (a quad) that shows a piece of a texture.
+// The quad is built once at (0,0). To move it we only change its position,
 // and to change the picture we only move the window it looks at in the
-// texture (texCoordDispl). That's how animations work: each frame is a
-// different spot of the same image.
+// texture (texCoordDispl).
 // It can also be flipped horizontally, so one set of frames works for
 // facing left and right.
 class Sprite
@@ -54,8 +53,7 @@ public:
     void changeAnimation(int animId);
     int animation() const;
 
-    // Shows one fixed frame. Useful when the same sprite draws many different
-    // things in one frame (letters of a text, HUD icons, explosion pieces)
+    // Shows one fixed frame
     void setFrame(const glm::vec2 &texCoord);
 
     void setPosition(const glm::vec2 &pos);
@@ -66,7 +64,6 @@ private:
     Texture *texture;
     ShaderProgram *shaderProgram;
 
-    // The quad's vertices live in the GPU (vbo), and the vao remembers how they're laid out
     GLuint vao;
     GLuint vbo;
     GLint posLocation;

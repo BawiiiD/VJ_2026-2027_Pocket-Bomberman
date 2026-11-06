@@ -38,7 +38,7 @@ namespace
 	constexpr unsigned long FLIPPED_HORIZONTALLY = 0x80000000UL;
 	constexpr unsigned long TILE_ID_MASK = 0x0FFFFFFFUL;
 
-	// The whole file in a string. The .tmx and .tsx are small, so it's the easy way
+	// The whole file in a string
 	string readFile(const string &fileName)
 	{
 		ifstream fin(fileName.c_str());

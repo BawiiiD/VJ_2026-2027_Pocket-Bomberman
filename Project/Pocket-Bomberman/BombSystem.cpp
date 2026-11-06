@@ -40,7 +40,7 @@ void BombSystem::setItemDrop(const glm::ivec2 &tile, ItemType type)
 // back in, and you can land on top of it (TileMap::collides handles that).
 void BombSystem::place(TileMap &map, const Player &player, Texture &atlas, ShaderProgram &program)
 {
-	// We already have the max number of bombs out (Bomb Up raises it)
+	// We already have the max number of bombs out
 	if(int(bombs.size()) >= player.getStats().maxBombs)
 		return;
 
@@ -66,7 +66,6 @@ void BombSystem::update(int deltaTime, TileMap &map,
 		bomb->update(deltaTime);
 
 		// Bombs inside a ray explode as soon as it shoots
-		// (bombs float, so you can drop one in the gap where the ray goes)
 		if(rays.hitsTile(bomb->getTilePos(), levelMs))
 			bomb->trigger();
 	}

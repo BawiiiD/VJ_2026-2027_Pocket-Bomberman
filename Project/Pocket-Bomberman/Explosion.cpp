@@ -11,7 +11,7 @@ namespace
     constexpr int TEXTURE_WIDTH = 128;
     constexpr int TEXTURE_HEIGHT = 64;
 
-    // Which row (size) is shown in each of the 7 steps of the explosion
+    // Which row is shown in each of the 7 steps of the explosion
     const int PHASE_SEQUENCE[] = { 0, 1, 2, 2, 2, 1, 0 };
     constexpr int PHASE_COUNT = sizeof(PHASE_SEQUENCE) / sizeof(PHASE_SEQUENCE[0]);
 }

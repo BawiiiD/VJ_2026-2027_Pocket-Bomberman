@@ -77,7 +77,7 @@ void Bomb::update(int deltaTime)
         tickMs += 1000 * BOMB_FRAMES / fps;
     }
 
-    // We only mark it; BombSystem is the one that removes it and makes the fire
+    // We only mark it; BombSystem is the one that removes it and makes it explode
     if (remainingMs <= 0)
         triggered = true;
 }

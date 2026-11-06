@@ -33,8 +33,7 @@ namespace
     constexpr float HOPPER_JUMP_SPEED = 220.f;
     constexpr float HOPPER_SPEED = 50.f;
 
-    // Chaser: slow patrol, and a run that is almost as fast as the player (64),
-    // so you can escape but it puts pressure on you. It sees 7 tiles ahead
+    // Chaser: slow patrol, and a run that is almost as fast as the player. It sees 7 tiles ahead
     constexpr float CHASER_PATROL_SPEED = 22.f;
     constexpr float CHASER_RUN_SPEED = 58.f;
     constexpr float CHASER_SIGHT_X = 112.f;
@@ -224,8 +223,7 @@ void Walker::think(float dt, const glm::vec2 &playerCenter)
 }
 
 
-// Hopper: waits on the floor and jumps towards the player. It aims only when
-// it takes off, so you can dodge it once it's in the air
+// Hopper: waits on the floor and jumps towards the player
 
 Hopper::Hopper()
     : Enemy(HOPPER_ROW, { 0, 1 }, { 2, 3, 4 }),
@@ -275,8 +273,7 @@ void Chaser::think(float dt, const glm::vec2 &playerCenter)
                            getBounds().y + getBounds().w / 2.f);
 
     const float distanceX = playerCenter.x - center.x;
-    // Player and enemy hitboxes are both 14 pixels tall. Sample just inside
-    // their feet so standing on a tile boundary uses the occupied row.
+    // Player and enemy hitboxes are both 14 pixels tall
     const glm::vec2 feetOffset(0.f, HITBOX_SIZE.y / 2.f - 0.01f);
     const bool sameLevel =
         map->toTile(playerCenter + feetOffset).y == map->toTile(center + feetOffset).y;

@@ -24,7 +24,7 @@ enum class Sound
     MENU_MOVE,
     MENU_SELECT,
 
-    // Not a sound: it's just how many there are
+    // Count of sounds
     COUNT
 };
 
@@ -50,7 +50,7 @@ enum class Music
 // singleton like Game, so anyone can just call Audio::instance().playSound(...)
 // without having to pass the audio object around.
 // If there is no audio device or a file is missing, that sound is simply not
-// played: the game never crashes because of the sound.
+// played.
 class Audio
 {
 private:
@@ -78,8 +78,6 @@ public:
     void stopMusic();
 
 private:
-    // The miniaudio objects are hidden in Audio.cpp, so that miniaudio.h
-    // (a very big header) is only compiled once
     struct Impl;
     std::unique_ptr<Impl> impl;
 };

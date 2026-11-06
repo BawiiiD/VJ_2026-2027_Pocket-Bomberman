@@ -5,9 +5,8 @@
 
 namespace
 {
-    // We didn't want to depend on a font file, so the font is drawn right here
-    // in the code. The texture has 16x8 cells of 8x8 pixels, one per ASCII code,
-    // so finding a letter is just code % 16 (column) and code / 16 (row)
+    // The font is drawn right here in the code. The texture has 16x8 cells of 8x8 pixels,
+    // one per ASCII code, so finding a letter is just code % 16 (column) and code / 16 (row)
     constexpr int CELL = 8;
     constexpr int COLUMNS = 16;
     constexpr int ROWS = 8;
@@ -80,8 +79,7 @@ namespace
     };
 
     // Builds an RGBA image with every glyph drawn in white over a transparent
-    // background. White is useful because the shader multiplies by the "color"
-    // uniform, so the same font can be drawn in any color
+    // background. By using white pixels we can draw the text with any color we want in the shader
     std::vector<unsigned char> buildFontImage()
     {
         const int width = COLUMNS * CELL;

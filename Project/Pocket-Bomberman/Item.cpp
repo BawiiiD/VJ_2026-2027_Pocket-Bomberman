@@ -25,7 +25,7 @@ Item::Item(glm::ivec2 tile,
         &atlas,
         &program
     ));
-    // Items don't animate, so a fixed frame is enough
+    // Items don't use animations
     sprite->setFrame(atlasCell(static_cast<int>(type), ITEM_ROW));
     sprite->setPosition(glm::vec2(tile * tileSize));
 }

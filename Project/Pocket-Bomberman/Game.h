@@ -12,11 +12,11 @@
 #include "Scene.h"
 
 
-// Size of the window, in real pixels
+// Size of the window, in pixels
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 
-// The whole game is designed for 320x240, like a small console screen, and
+// The whole game is designed for 320x240, and
 // every one of those pixels is drawn as 2x2 window pixels. This way all the
 // positions in the code are in "game pixels" and the pixel art stays sharp.
 #define PIXEL_SCALE 2

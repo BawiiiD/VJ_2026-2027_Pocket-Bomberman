@@ -34,9 +34,7 @@ namespace
     // stepping down a few pixels, is silent)
     constexpr float LAND_SOUND_SPEED = 100.f;
 
-    // Jumping is still allowed a few ms after walking off a ledge ("coyote time",
-    // like the cartoon coyote that runs off a cliff). Players usually press jump
-    // a little late, and without this the game feels unfair
+    // Jumping is still allowed a few ms after walking off a ledge
     constexpr int COYOTE_MS = 80;
     // Blinking time after the heart has been lost
     constexpr int INVULNERABLE_MS = 2000;
@@ -63,7 +61,6 @@ namespace
     };
 }
 
-// No OpenGL here: the sprite is made in init()
 Player::Player()
 {
     map = nullptr;
@@ -93,8 +90,6 @@ void Player::init(Texture &atlas, ShaderProgram &shaderProgram)
 
     sprite->setNumberAnimations(ANIMATION_COUNT);
 
-    // Small helper so each animation is a single line below: speed, whether it
-    // loops, and its frames given as columns of the player row
     auto addFrames = [&](int animation,
                          std::initializer_list<int> columns,
                          int framesPerSecond,
@@ -141,7 +136,6 @@ void Player::update(int deltaTime)
     if (invulnerableMs > 0)
         invulnerableMs -= deltaTime;
 
-    // The speeds are in pixels per second, so we work with seconds
     const float dt = deltaTime / 1000.f;
 
     bool walking = false;
@@ -183,7 +177,7 @@ void Player::update(int deltaTime)
         }
 
         // Releasing the key early makes a shorter jump: we cut the speed going up.
-        // Tap for a small hop, hold for the full jump. Very handy to land on bombs
+        // Tap for a small hop, hold for the full jump
         if (!jumpKey && velocityY < -JUMP_SPEED * 0.4f)
             velocityY = -JUMP_SPEED * 0.4f;
 
@@ -198,10 +192,8 @@ void Player::update(int deltaTime)
 
     if (moveAndCollide(*map, posPlayer, HITBOX_SIZE, velocityY * dt, 1))
     {
-        // Something blocked us: if we were going down it's the floor, if we were
-        // going up it's a ceiling. Either way the vertical speed stops.
-        // Even when standing still, gravity pushes him down a bit every frame and
-        // the floor blocks it; that's how we know every frame that he's on the ground
+        // Something blocked us, if we were going down it's the floor, if we were
+        // going up it's a ceiling.
         onGround = velocityY > 0.f;
         if (onGround && !wasOnGround && velocityY > LAND_SOUND_SPEED)
             Audio::instance().playSound(Sound::LAND);
@@ -229,7 +221,7 @@ void Player::update(int deltaTime)
 
 void Player::render()
 {
-    // Blink while invulnerable: every 80 ms he's skipped, then drawn, then skipped...
+    // Blink while invulnerable
     if (invulnerableMs > 0 && (invulnerableMs / 80) % 2 == 0)
         return;
 
@@ -256,8 +248,7 @@ void Player::setTile(const glm::ivec2 &tile)
     onGround = false;
     coyoteMs = 0;
     invulnerableMs = 0;
-    // As if jump was already held: if you're holding it when the level starts,
-    // he won't jump by himself until you press it again
+    // If jump was pressed before, you have to release it and press it again to jump
     jumpWasPressed = true;
     facingRight = true;
     state = NORMAL;
@@ -294,8 +285,7 @@ bool Player::isDying() const
 }
 
 // Something touched him. Nothing happens if he's already dying or celebrating,
-// in god mode, or still blinking after losing the heart (that blinking also
-// stops one explosion from hitting him twice)
+// in god mode, or still blinking after losing the heart
 bool Player::hurt(bool byBomb)
 {
     if (state != NORMAL || godMode || invulnerableMs > 0)
