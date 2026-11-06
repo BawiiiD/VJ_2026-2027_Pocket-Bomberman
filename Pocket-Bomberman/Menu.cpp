@@ -234,6 +234,7 @@ void Menu::renderInstructions()
 
     // Items with their icons
     y += 6.f;
+    line("BREAK BUSHES TO FIND THESE POWER-UPS:", HEADER_COLOR);
     const char *names[] = { "BOMB UP: +1 BOMB", "FIRE UP: +1 FIRE RANGE", "HEART: SURVIVE A HIT", "SPEED UP: RUN FASTER" };
     for (int i = 0; i < 4; ++i)
     {
@@ -242,6 +243,11 @@ void Menu::renderInstructions()
         text->render(names[i], pos + glm::vec2(20.f, 4.f), NORMAL_COLOR);
     }
     y += 46.f;
+
+    line("FENCES:", HEADER_COLOR);
+    line("BLAST THE TOP CONTROL TO OPEN THE FENCE.", NORMAL_COLOR);
+    line("FENCE BARS BLOCK EXPLOSIONS.", NORMAL_COLOR);
+    y += 4.f;
 
     line("CHEATS:", HEADER_COLOR);
     line("G: GOD MODE   K: KILL ENEMIES   1-5: GO TO LEVEL", NORMAL_COLOR);

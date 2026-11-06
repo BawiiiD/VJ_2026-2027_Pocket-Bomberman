@@ -14,51 +14,60 @@ Parte básica
 - 4 pantallas: menú principal, juego, instrucciones y créditos.
 - 5 niveles diseñados con Tiled (levels/map0X.tmx + levels/level0X.txt). En
   cada uno hay que eliminar a todos los enemigos para abrir la puerta de
-  salida, y Bomberman tiene que entrar en ella. Los niveles son más grandes
-  que la pantalla y la cámara sigue a Bomberman.
-- Bomberman se mueve a izquierda y derecha y salta. El salto es más alto si
-  se mantiene pulsada la tecla, y hay un pequeño margen para saltar justo
-  después de salir de un borde.
+  salida, y Bomberman tiene que entrar en ella para terminar el nivel. Se
+  aplica una cámara que se sigue a Bomberman cuando se mueva.
+- Bomberman se mueve a izquierda y derecha y salta. El salto es más alto
+  si se mantiene pulsada la tecla, y implementamos también un pequeño 
+  margen para saltar justo después de salir de un borde.
 - 3 enemigos con comportamientos diferentes:
     * Walker (rosa): patrulla su plataforma y se da la vuelta en las paredes
-      y en los bordes.
+      o en los bordes.
     * Hopper (naranja): espera en el suelo y luego salta hacia Bomberman.
-    * Chaser (amarillo): patrulla despacio y persigue a Bomberman cuando lo
-      ve delante, en el mismo piso. Nunca se cae de su plataforma.
-  Tocar a un enemigo cuesta una vida, a no ser que Bomberman tenga el corazón.
-- 3 vidas. Al morir, el nivel vuelve a empezar con los objetos que Bomberman
-  tenía al empezarlo. Al perder las 3 vidas aparece GAME OVER y se vuelve al
-  menú principal.
+    * Chaser (amarillo): patrulla su plataforma como Walker, pero se persigue 
+      a Bomberman cuando lo ve delante (en el mismo nivel).
+- Tocar a un enemigo causa daño; el corazón, el modo dios o la
+  invulnerabilidad temporal pueden evitar que Bomberman pierda una vida.
+- Inicialmente tiene 3 vidas. Al morir, el nivel vuelve a empezar con los objetos
+  que Bomberman tenía al empezarlo. Al perder las 3 vidas aparece GAME OVER
+  y se vuelve al menú principal.
 - Las bombas siempre se colocan en el centro de un tile y flotan en el aire.
   Explotan a los 2,5 s (parpadeando más rápido al final) y el fuego mata a
   los enemigos y a Bomberman. Una bomba alcanzada por el fuego también
-  explota (reacción en cadena).
-- Bomberman puede subirse encima de sus propias bombas para llegar a zonas
-  más altas.
+  explota, como reacción en cadena.
+- Bomberman puede subirse encima de sus propias bombas, y las bombas tiene
+  física
 - Arbustos destructibles. El fichero de cada nivel indica qué arbustos dejan
-  un objeto y cuál (líneas POWERUP).
-- 4 objetos: Bomb Up (+1 bomba a la vez), Fire Up (+1 tile de explosión),
-  Corazón (aguanta un golpe) y Speed Up (camina más rápido). Se conservan de
-  un nivel al siguiente.
-- Tiempo límite en cada nivel. Si se acaba, Bomberman pierde una vida.
+  un objeto y cuál (POWERUP). La entrega es fija: cada arbusto configurado deja 
+  su objeto una vez por carga del nivel; los demás no dejan nada. Al reintentar 
+  el nivel se restauran los arbustos y sus objetos.
+  Los arbustos detienen el fuego de la explosión al destruirse.
+- 4 objetos: Bomb Up (+1 bomba a la vez, máximo 4), Fire Up (+1 tile de
+  alcance por dirección, máximo 4), Corazón (aguanta un golpe, máximo 1) y 
+  Speed Up (+1 nivel de velocidad, máximo 3). Se conservan de un nivel al 
+  siguiente. Al perder el corazón se da 2s de invulnerabilidad.
+- Tiempo límite en cada nivel. Si se acaba, Bomberman pierde una vida,
+  incluso con corazón o con el modo dios activado.
 - Jefe final en el nivel 5: un árbol que se mueve de un lado a otro, lanza
-  semillas en arco y pájaros que vuelan hacia Bomberman. Necesita 4
-  explosiones y ataca más rápido cuando está a punto de ser derrotado. Al
-  morir aparece la puerta de salida.
-- HUD: tiempo restante, vidas, bombas a la vez, tamaño de la explosión,
-  corazón, nivel de velocidad, enemigos restantes y el nivel (o la vida del
-  jefe en el nivel 5).
-- Trucos:
-    G      Activa/desactiva el modo dios (Bomberman es invulnerable)
-    K      Elimina a todos los enemigos (y al jefe) y abre la puerta de salida
-    1 - 5  Carga ese nivel
+  semillas en arco y pájaros que vuelan hacia Bomberman. Necesita 4 impactos
+  de explosión, con 1s de invulnerabilidad entre golpes. Se mueve y ataca
+  más rápido cuando le quedan 2 puntos de vida o menos. Sus proyectiles
+  atraviesan paredes y plataformas, pero el fuego de las bombas los destruye.
+  La puerta de salida aparece al terminar su animación de muerte.
+- HUD, de izquierda a derecha: tiempo restante, vidas, numero de bombas,
+  rango de la explosión, nivel de velocidad, corazón si se posee, enemigos
+  restantes y nivel (y vida del jefe en nivel 5).
+- CHEATS:
+    G     Activa/desactiva el modo dios (no protege del tiempo agotado)
+    K     Elimina a los enemigos y al jefe, y borra sus proyectiles
+    1-5  Carga ese nivel conservando vidas y objetos
 
 Elementos de los niveles
 - Surtidores con una valla debajo: la valla es una pared. Cuando el fuego de
-  una bomba alcanza el surtidor, la valla sube y deja el camino libre.
-- Emisores de rayos: dos bloques que esperan, se cargan y disparan un rayo
-  entre ellos durante 1,5 s. El rayo mata a Bomberman y hace explotar las
-  bombas que hay dentro.
+  una bomba alcanza el control superior, la valla se retrae y deja el camino
+  libre. El control permanece y las barras bloquean el fuego.
+- Emisores de rayos: dos bloques alternan 1,5 s de disparo y 1,5 s de pausa,
+  con una animación de carga al final de la pausa. El rayo daña a Bomberman
+  y hace explotar las bombas que hay dentro.
 
 Polish
 - Sonido (miniaudio): una música diferente para el menú, cada mundo y el
@@ -82,29 +91,30 @@ Polish
 
 Instrucciones
 -------------
+
 Objetivo: en cada nivel, elimina a todos los enemigos con las bombas y luego
 entra en la puerta de salida antes de que se acabe el tiempo. En el nivel 5,
 derrota al jefe.
 
 Controles
-    IZQUIERDA / DERECHA   Moverse
+    IZQUIERDA / DERECHA    Moverse
     ARRIBA o Z            Saltar (mantener para saltar más alto)
     ESPACIO o X           Poner una bomba
     ESC                   Volver al menú principal (en el menú principal
                           cierra el juego)
 
 Menús
-    ARRIBA / ABAJO        Elegir una opción
+    ARRIBA / ABAJO         Elegir una opción
     ENTER, Z o ESPACIO     Confirmar (ENTER, Z, ESPACIO o ESC vuelven atrás
                           desde las pantallas de instrucciones y créditos)
-    ENTER o ESPACIO       Saltar la intro y las pantallas de game over y
-                          victoria
+    ENTER, ESPACIO o ESC   Saltar la intro
+    ENTER o ESPACIO        Volver al menú desde GAME OVER o victoria
 
 Consejos
 - Las bombas flotan: pon una, súbete encima y pon otra para trepar.
 - Tus propias bombas te pueden matar, así que apártate antes de que exploten.
-- Haz explotar los surtidores para abrir las vallas, y cruza los rayos cuando
-  estén apagados.
+- Alcanza con el fuego el control superior de las vallas para abrir el paso,
+  y cruza los rayos cuando estén apagados.
 
 
 Créditos
