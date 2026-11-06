@@ -44,6 +44,8 @@ private:
     Text *text = nullptr;
     Text *bigText = nullptr;
 
+    std::unique_ptr<Texture> backgroundTexture;
+    std::unique_ptr<Sprite> background;
     std::unique_ptr<Sprite> bomberman;
     std::unique_ptr<Sprite> icon;
 

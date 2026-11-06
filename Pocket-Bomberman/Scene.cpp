@@ -30,6 +30,10 @@ namespace
 	constexpr int GAME_OVER_MS = 9200;
 	constexpr int VICTORY_MS = 11200;
 
+	const glm::vec3 BANNER_BACKGROUND_COLOR(0.10f, 0.10f, 0.10f);
+	const glm::vec4 BANNER_TITLE_COLOR(1.f, 0.95f, 0.65f, 1.f);
+	const glm::vec4 BANNER_SUBTITLE_COLOR(1.f, 0.95f, 0.65f, 1.f);
+
 	// Below this time the clock blinks and a warning sounds
 	constexpr int HURRY_UP_MS = 30000;
 
@@ -575,20 +579,20 @@ void Scene::render()
 		if(levelMs < STAGE_TITLE_MS)
 			renderBanner(stage.str(), currentLevel == NUM_LEVELS ? "DEFEAT THE BOSS!" : "DEFEAT ALL THE ENEMIES!");
 		else if(godMode)
-			text->render("GOD MODE", glm::vec2(4.f, 4.f), glm::vec4(1.f, 1.f, 0.3f, 1.f));
+			bigText->render("GOD MODE", glm::vec2(4.f, 4.f), glm::vec4(1.f, 1.f, 0.1f, 1.f));
 		break;
 	case State::LEVEL_CLEAR:
 		renderBanner(stage.str() + " CLEAR!", "");
 		break;
 	case State::PLAYER_DEAD:
 		if(timeUp)
-			renderBanner("TIME UP!", "");
+			renderBanner("TIME UP!", "GAME OVER");
 		break;
 	case State::GAME_OVER:
-		renderBanner("GAME OVER", "PRESS ENTER");
+		renderBanner("GAME OVER", "PRESS ENTER TO RESTART");
 		break;
 	case State::VICTORY:
-		renderBanner("CONGRATULATIONS!", "YOU FOUND THE POWER STONE");
+		renderBanner("CONGRATULATIONS!", "YOU BEAT THE GAME!");
 		break;
 	}
 
@@ -609,11 +613,11 @@ void Scene::renderBanner(const string &title, const string &subtitle)
 	float y = (WORLD_VIEW_HEIGHT - height) / 2.f;
 
 	// The banner is drawn with a scissor clear, in window coordinates
-	Game::instance().fillRect(glm::vec4(0.f, y, float(VIEW_WIDTH), height), glm::vec3(0.1f, 0.1f, 0.2f));
+	Game::instance().fillRect(glm::vec4(0.f, y, float(VIEW_WIDTH), height), BANNER_BACKGROUND_COLOR);
 
-	bigText->renderCentered(title, VIEW_WIDTH / 2.f, y + 6.f, glm::vec4(1.f, 0.9f, 0.3f, 1.f));
+	bigText->renderCentered(title, VIEW_WIDTH / 2.f, y + 6.f, BANNER_TITLE_COLOR);
 	if(!subtitle.empty())
-		text->renderCentered(subtitle, VIEW_WIDTH / 2.f, y + 26.f);
+		text->renderCentered(subtitle, VIEW_WIDTH / 2.f, y + 26.f, BANNER_SUBTITLE_COLOR);
 }
 
 void Scene::renderHUD()

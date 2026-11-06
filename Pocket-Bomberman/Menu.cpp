@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -14,10 +16,12 @@ namespace
     const char *OPTIONS[] = { "PLAY", "INSTRUCTIONS", "CREDITS", "EXIT" };
     constexpr int OPTION_COUNT = 4;
 
-    const glm::vec4 TITLE_COLOR(1.f, 0.85f, 0.2f, 1.f);
-    const glm::vec4 HIGHLIGHT_COLOR(1.f, 1.f, 1.f, 1.f);
-    const glm::vec4 NORMAL_COLOR(0.6f, 0.65f, 0.9f, 1.f);
-    const glm::vec4 HEADER_COLOR(1.f, 0.5f, 0.7f, 1.f);
+    const glm::vec3 BACKGROUND_COLOR(0.10f, 0.10f, 0.10f);
+    const glm::vec4 TITLE_COLOR(1.f, 0.95f, 0.65f, 1.f);
+    const glm::vec4 HIGHLIGHT_COLOR(1.f, 0.95f, 0.65f, 1.f);
+    const glm::vec4 MAIN_TEXT_COLOR(1.f, 1.f, 1.f, 1.f);
+    const glm::vec4 NORMAL_COLOR(0.82f, 0.83f, 0.85f, 1.f);
+    const glm::vec4 HEADER_COLOR(1.f, 0.95f, 0.65f, 1.f);
 }
 
 void Menu::init(ShaderProgram &shaderProgram, Texture &atlas, Text &smallText, Text &largeText)
@@ -25,6 +29,32 @@ void Menu::init(ShaderProgram &shaderProgram, Texture &atlas, Text &smallText, T
     program = &shaderProgram;
     text = &smallText;
     bigText = &largeText;
+
+    background.reset();
+    backgroundTexture.reset(new Texture());
+    if(backgroundTexture->loadFromFile("images/intro.png", TEXTURE_PIXEL_FORMAT_RGBA))
+    {
+        backgroundTexture->setWrapS(GL_CLAMP_TO_EDGE);
+        backgroundTexture->setWrapT(GL_CLAMP_TO_EDGE);
+        backgroundTexture->setMinFilter(GL_NEAREST);
+        backgroundTexture->setMagFilter(GL_NEAREST);
+
+        // The first Intro picture occupies x=28..186, y=18..97 in the atlas.
+        const glm::vec2 picturePosition(28.f, 18.f);
+        const glm::vec2 pictureSize(159.f, 80.f);
+        const glm::vec2 textureSize(float(backgroundTexture->width()), float(backgroundTexture->height()));
+        const glm::vec2 screenSize(float(VIEW_WIDTH), float(VIEW_HEIGHT));
+        const float scale = std::max(screenSize.x / pictureSize.x, screenSize.y / pictureSize.y);
+        background.reset(Sprite::createSprite(pictureSize * scale, pictureSize / textureSize,
+                                               backgroundTexture.get(), program));
+        background->setFrame(picturePosition / textureSize);
+        background->setPosition(glm::round((screenSize - pictureSize * scale) / 2.f));
+    }
+    else
+    {
+        backgroundTexture.reset();
+        std::cout << "Could not load menu background images/intro.png" << std::endl;
+    }
 
     // Bomberman walking in the main menu, drawn twice as big
     bomberman.reset(Sprite::createSprite(glm::vec2(32.f), atlasCellSize(), &atlas, program));
@@ -41,6 +71,8 @@ void Menu::init(ShaderProgram &shaderProgram, Texture &atlas, Text &smallText, T
 
 void Menu::shutdown()
 {
+    background.reset();
+    backgroundTexture.reset();
     bomberman.reset();
     icon.reset();
 }
@@ -115,13 +147,24 @@ void Menu::render()
     glm::mat4 modelview(1.f);
 
     Game::instance().fillRect(glm::vec4(0.f, 0.f, float(VIEW_WIDTH), float(VIEW_HEIGHT)),
-                              glm::vec3(0.12f, 0.12f, 0.35f));
+                              BACKGROUND_COLOR);
 
     program->use();
     program->setUniformMatrix4f("projection", projection);
     program->setUniformMatrix4f("modelview", modelview);
     program->setUniform4f("color", 1.f, 1.f, 1.f, 1.f);
+    program->setUniform3f("recolor", 0.f, 0.f, 0.f);
     program->setUniform2f("texCoordDispl", 0.f, 0.f);
+
+    if(screen == Screen::MAIN && background)
+    {
+        // Dim the picture so that the menu text remains readable over it.
+        program->setUniform4f("color", 0.45f, 0.45f, 0.45f, 1.f);
+        background->render();
+        program->setUniform4f("color", 1.f, 1.f, 1.f, 1.f);
+        program->setUniformMatrix4f("modelview", modelview);
+        program->setUniform2f("texCoordDispl", 0.f, 0.f);
+    }
 
     switch (screen)
     {
@@ -160,14 +203,14 @@ void Menu::renderMain()
     {
         const float y = 130.f + i * 18.f;
         const bool isSelected = (i == selected);
-        text->renderCentered(OPTIONS[i], VIEW_WIDTH / 2.f, y, isSelected ? HIGHLIGHT_COLOR : NORMAL_COLOR);
+        text->renderCentered(OPTIONS[i], VIEW_WIDTH / 2.f, y, isSelected ? HIGHLIGHT_COLOR : MAIN_TEXT_COLOR);
 
         // A bomb points at the selected option
         if (isSelected)
             renderIcon(0, 2, glm::vec2(VIEW_WIDTH / 2.f - text->width(OPTIONS[i]) / 2.f - 22.f, y - 4.f));
     }
 
-    text->renderCentered("UP/DOWN + ENTER", VIEW_WIDTH / 2.f, 220.f, NORMAL_COLOR);
+    text->renderCentered("UP/DOWN + ENTER", VIEW_WIDTH / 2.f, 220.f, MAIN_TEXT_COLOR);
 }
 
 void Menu::renderInstructions()
@@ -182,8 +225,7 @@ void Menu::renderInstructions()
     };
 
     line("DEFEAT ALL THE ENEMIES AND REACH THE DOOR", HIGHLIGHT_COLOR);
-    line("BEFORE THE TIME RUNS OUT. BOMBS FLOAT IN THE", HIGHLIGHT_COLOR);
-    line("AIR: JUMP ON THEM TO REACH HIGH PLACES!", HIGHLIGHT_COLOR);
+    line("BEFORE THE TIME RUNS OUT.", HIGHLIGHT_COLOR);
     y += 4.f;
     line("LEFT/RIGHT   MOVE", NORMAL_COLOR);
     line("UP OR Z      JUMP", NORMAL_COLOR);
@@ -192,7 +234,7 @@ void Menu::renderInstructions()
 
     // Items with their icons
     y += 6.f;
-    const char *names[] = { "BOMB UP: +1 BOMB", "FIRE UP: +1 FIRE", "HEART: SURVIVE A HIT", "SPEED UP: RUN FASTER" };
+    const char *names[] = { "BOMB UP: +1 BOMB", "FIRE UP: +1 FIRE RANGE", "HEART: SURVIVE A HIT", "SPEED UP: RUN FASTER" };
     for (int i = 0; i < 4; ++i)
     {
         const glm::vec2 pos(12.f + (i % 2) * 152.f, y + (i / 2) * 20.f);

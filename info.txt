@@ -42,7 +42,7 @@ Parte básica
   un nivel al siguiente.
 - Tiempo límite en cada nivel. Si se acaba, Bomberman pierde una vida.
 - Jefe final en el nivel 5: un árbol que se mueve de un lado a otro, lanza
-  semillas en arco y pájaros que vuelan hacia Bomberman. Necesita 5
+  semillas en arco y pájaros que vuelan hacia Bomberman. Necesita 4
   explosiones y ataca más rápido cuando está a punto de ser derrotado. Al
   morir aparece la puerta de salida.
 - HUD: tiempo restante, vidas, bombas a la vez, tamaño de la explosión,

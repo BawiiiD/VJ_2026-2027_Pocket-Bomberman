@@ -1,5 +1,13 @@
 # VJ_2026-2027_Pocket-Bomberman
 
+## 直接运行 exe
+
+编译后，`Debug/` 或 `Release/` 中会自动包含 `images/`、`sounds/`、`shaders/` 和 `levels/` 四个资源文件夹，以及 `glew32.dll`。可以直接双击该目录中的 `Pocket-Bomberman.exe`。
+
+游戏按当前工作目录读取资源。在 Visual Studio 中启动时，默认从源码目录读取；双击 exe 时，从 exe 所在目录读取。缺少资源会导致 Shader 错误以及 `Could not load ...` 提示。
+
+分享游戏时，请将 exe、`glew32.dll` 和这四个资源文件夹放在同一个目录中一起打包，并从该目录启动。
+
 ## 指定草丛掉落的道具
 
 在 `Pocket-Bomberman/levels/levelXX.txt` 中添加：

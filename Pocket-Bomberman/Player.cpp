@@ -34,8 +34,8 @@ namespace
     // Blinking time after the heart has been lost
     constexpr int INVULNERABLE_MS = 2000;
 
-    constexpr int MAX_BOMBS = 8;
-    constexpr int MAX_FIRE = 8;
+    constexpr int MAX_BOMBS = 4;
+    constexpr int MAX_FIRE = 4;
     constexpr int MAX_SPEED_LEVEL = 3;
 
     // All the player frames are in row 0 of images/sprites.png

@@ -1,6 +1,7 @@
-# Level description. Coordinates are in tiles, counted from the top-left
-# corner of the used part of the Tiled map
-# Enemy/player coordinates give the tile they stand in (floor below)
+# Level description:
+# coordinates are in tiles counted from the top-left
+# read directly form .tmx format
+# Enemy/Player coordinates give the tile they stand in (the floor below them)
 # Fixed bush drops: POWERUP x y TYPE (BOMBUP, FIREUP, HEART, SPEEDUP)
 # Unlisted bushes drop nothing
 MAP levels/map01.tmx

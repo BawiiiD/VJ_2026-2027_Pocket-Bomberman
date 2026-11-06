@@ -142,6 +142,15 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyRuntimeAssets" AfterTargets="Build">
+    <!-- Relative asset paths must also work when launching the exe directly. -->
+    <ItemGroup>
+      <RuntimeAsset Include="images\**\*;sounds\**\*;shaders\**\*;levels\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RuntimeAsset)"
+          DestinationFiles="@(RuntimeAsset->'$(TargetDir)%(Identity)')"
+          SkipUnchangedFiles="true" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

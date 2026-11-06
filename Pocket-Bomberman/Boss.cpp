@@ -27,7 +27,7 @@ namespace
     const glm::vec2 BOSS_HITBOX_SIZE(24.f, 28.f);
     const glm::vec2 BOSS_HITBOX_OFFSET(4.f, 4.f);
 
-    constexpr int MAX_HEALTH = 5;
+    constexpr int MAX_HEALTH = 4;
     constexpr float PATROL_SPEED = 24.f;
     constexpr float BERSERK_PATROL_SPEED = 36.f;
     constexpr int ATTACK_MS = 2400;
@@ -265,11 +265,11 @@ void Boss::attack(const glm::vec2 &playerCenter,
     }
     else
     {
-        // Three seeds arc towards the player, passing through walls and platforms.
-        const float flightTimes[] = { 0.8f, 1.0f, 1.2f };
-        const float offsets[] = { -20.f, 0.f, 20.f };
+        // Two seeds arc towards the player, passing through walls and platforms.
+        const float flightTimes[] = { 0.8f, 1.2f };
+        const float offsets[] = { -20.f, 20.f };
 
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < 2; ++i)
         {
             const glm::vec2 target = playerCenter - PROJECTILE_SIZE / 2.f + glm::vec2(offsets[i], 0.f);
             const glm::vec2 delta = target - mouth;
